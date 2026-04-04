@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Dev/Proyectos/Rb/src -name *ife* -o -name *ealth* -o -name *HUD*)"
+    ]
+  }
+}

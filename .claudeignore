@@ -1,0 +1,23 @@
+# ── Binarios de Roblox ──────────────────────────────────────────
+# Archivos compilados del juego (binarios, no aportan contexto de código)
+*.rbxlx
+*.rbxl
+*.rbxm
+*.rbxmx
+
+# Lock files de Studio
+*.rbxlx.lock
+*.rbxl.lock
+
+# ── Archivos generados por Rojo ──────────────────────────────────
+sourcemap.json
+
+# ── Git internals ────────────────────────────────────────────────
+.git/
+
+# ── Boilerplate sin uso ──────────────────────────────────────────
+# Archivo Hello.luau de ejemplo que viene con la plantilla de Rojo
+src/shared/Hello.luau
+
+# ── Documentación ────────────────────────────────────────────────
+README.md
