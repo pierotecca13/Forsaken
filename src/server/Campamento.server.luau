@@ -78,6 +78,18 @@ luzFuego.Color      = Color3.fromRGB(255, 150, 50)
 luzFuego.Range      = 24
 luzFuego.Parent     = hoguera
 
+-- Registrar hoguera base en HoguerasActivas para repeler corrompidos
+local carpetaHogueras = obtenerOCrear(workspace, "Folder", "HoguerasActivas")
+local marcadorCamp    = Instance.new("Part")
+marcadorCamp.Name        = "RadioCampamento"
+marcadorCamp.Size        = Vector3.new(1, 1, 1)
+marcadorCamp.Anchored    = true
+marcadorCamp.CanCollide  = false
+marcadorCamp.Transparency = 1
+marcadorCamp.Position    = hoguera.Position
+marcadorCamp:SetAttribute("Radio", 20)
+marcadorCamp.Parent      = carpetaHogueras
+
 -- Etiqueta flotante sobre la hoguera
 local billboard = Instance.new("BillboardGui")
 billboard.Size         = UDim2.new(0, 170, 0, 32)

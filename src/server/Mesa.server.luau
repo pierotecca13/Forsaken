@@ -150,6 +150,17 @@ local function crearAntorcha(posicion)
 	luz.Range      = receta.radioLuz
 	luz.Parent     = llama
 
+	-- Registrar en HoguerasActivas para que Enemigos.server la detecte
+	local marcadorAnt = Instance.new("Part")
+	marcadorAnt.Name        = "RadioAntorcha"
+	marcadorAnt.Size        = Vector3.new(1, 1, 1)
+	marcadorAnt.Anchored    = true
+	marcadorAnt.CanCollide  = false
+	marcadorAnt.Transparency = 1
+	marcadorAnt.CFrame      = CFrame.new(posicion)
+	marcadorAnt:SetAttribute("Radio", receta.radioRepulsion)
+	marcadorAnt.Parent      = carpetaHogueras
+
 	-- Auto-apagar tras la duración configurada
 	task.delay(receta.duracion, function()
 		-- Apagado gradual
@@ -160,6 +171,7 @@ local function crearAntorcha(posicion)
 				luz.Brightness     = receta.brilloLuz * (1 - i / 6)
 			end
 		end
+		if marcadorAnt and marcadorAnt.Parent then marcadorAnt:Destroy() end
 		if carpetaAnt and carpetaAnt.Parent then
 			carpetaAnt:Destroy()
 		end

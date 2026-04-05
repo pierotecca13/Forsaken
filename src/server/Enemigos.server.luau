@@ -359,6 +359,24 @@ local function gestionarEnemigo(tipoBase, posBase, corrompido, refCancelar)
 				end
 			end
 
+			-- Corrompidos no entran en zonas de luz: si el propio enemigo está dentro, escapar
+			if corrompido and jugadorEnZonaLuz(hrp) then
+				estado = "patrullar"
+				local hogueras = workspace:FindFirstChild("HoguerasActivas")
+				if hogueras then
+					for _, marcador in ipairs(hogueras:GetChildren()) do
+						local radio = marcador:GetAttribute("Radio") or 0
+						if (marcador.Position - hrp.Position).Magnitude <= radio then
+							local dir = (hrp.Position - marcador.Position)
+							if dir.Magnitude < 0.1 then dir = Vector3.new(1, 0, 0) end
+							humanoid:MoveTo(hrp.Position + dir.Unit * (radio + 5))
+							timerPat = math.random(3, 5)
+							break
+						end
+					end
+				end
+			end
+
 			-- Señal de grupo: lobos corrompidos cercanos también persiguen
 			if comp == "corrupto_lobo" and estado == "atacar" and jug then
 				for _, lr in ipairs(lobosCorruptosActivos) do

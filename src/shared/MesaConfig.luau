@@ -13,13 +13,14 @@ return {
 	-- Recetas disponibles en la mesa
 	RECETAS = {
 		Antorcha = {
-			nombre        = "Antorcha",
-			costo         = { Madera = 3 },
-			maxInventario = 3,       -- máximo que se puede cargar al mismo tiempo
-			duracion      = 120,     -- segundos que dura encendida (= 1 noche)
-			radioLuz      = 14,      -- studs de iluminación
-			brilloLuz     = 2.5,
-			colorLuz      = Color3.fromRGB(255, 160, 60),
+			nombre           = "Antorcha",
+			costo            = { Madera = 3 },
+			maxInventario    = 3,       -- máximo que se puede cargar al mismo tiempo
+			duracion         = 120,     -- segundos que dura encendida (= 1 noche)
+			radioLuz         = 14,      -- studs de iluminación
+			brilloLuz        = 2.5,
+			colorLuz         = Color3.fromRGB(255, 160, 60),
+			radioRepulsion   = 10,      -- corrompidos evitan este radio
 		},
 		Hoguera = {
 			nombre           = "Hoguera Portátil",

@@ -72,8 +72,8 @@ return {
 
 		Lobo = {
 			nombre         = "Lobo",
-			vida           = 60,
-			dano           = 15,
+			vida           = 45,
+			dano           = 10,
 			cooldown       = 1.2,
 			velocidad      = 16,
 			rangoAtaque    = 4.5,
@@ -101,8 +101,8 @@ return {
 
 		Oso = {
 			nombre         = "Oso",
-			vida           = 120,
-			dano           = 25,
+			vida           = 75,
+			dano           = 15,
 			cooldown       = 1.8,
 			velocidad      = 12,
 			rangoAtaque    = 6,
@@ -140,7 +140,7 @@ return {
 
 		Conejo = {
 			nombre         = "Conejo Corrompido",
-			vida           = 30,
+			vida           = 20,
 			dano           = 5,
 			cooldown       = 0.7,
 			velocidad      = 24,
@@ -155,8 +155,8 @@ return {
 
 		Zorro = {
 			nombre         = "Zorro Corrompido",
-			vida           = 50,
-			dano           = 12,
+			vida           = 35,
+			dano           = 8,
 			cooldown       = 0.9,
 			velocidad      = 22,
 			rangoDeteccion = 22,
@@ -171,8 +171,8 @@ return {
 
 		Lobo = {
 			nombre         = "Lobo Corrompido",
-			vida           = 100,
-			dano           = 25,
+			vida           = 50,
+			dano           = 13,
 			cooldown       = 1.0,
 			velocidad      = 18,
 			rangoDeteccion = 25,
@@ -188,8 +188,8 @@ return {
 
 		Oso = {
 			nombre         = "Oso de Sombra",
-			vida           = 200,
-			dano           = 40,
+			vida           = 80,
+			dano           = 18,
 			cooldown       = 2.0,
 			velocidad      = 14,
 			rangoAtaque    = 8,
