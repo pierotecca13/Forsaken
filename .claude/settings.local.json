@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(find /c/Dev/Proyectos/Rb/src -name *ife* -o -name *ealth* -o -name *HUD*)",
-      "Bash(grep -E \"\\\\.luau$\")"
+      "Bash(grep -E \"\\\\.luau$\")",
+      "Bash(wc -l /c/Dev/Proyectos/Rb/src/client/*.luau /c/Dev/Proyectos/Rb/src/server/*.luau /c/Dev/Proyectos/Rb/src/shared/*.luau)",
+      "Bash(xargs grep:*)"
     ]
   }
 }

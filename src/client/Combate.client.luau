@@ -1,5 +1,5 @@
 -- Combate.client.luau
--- Barra de vida, efecto de swing, pantalla de muerte y botón Reintentar.
+-- Barra de vida, efecto de swing, pantalla de muerte con opciones de revivir.
 -- El daño real lo calcula el servidor; este script maneja solo input y UI.
 
 local Players           = game:GetService("Players")
@@ -14,9 +14,14 @@ local playerGui = player:WaitForChild("PlayerGui")
 -- Ocultar barra de vida nativa de Roblox (usamos la nuestra)
 game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
 
-local carpetaEventos = ReplicatedStorage:WaitForChild("Eventos")
-local evAtacarMelee  = carpetaEventos:WaitForChild("AtacarMelee")
-local evReintentar   = carpetaEventos:WaitForChild("Reintentar")
+local carpetaEventos  = ReplicatedStorage:WaitForChild("Eventos")
+local evAtacarMelee   = carpetaEventos:WaitForChild("AtacarMelee")
+local evReintentar    = carpetaEventos:WaitForChild("Reintentar")
+local evRevivireAqui  = carpetaEventos:WaitForChild("RevivireAqui")
+local evGemas         = carpetaEventos:WaitForChild("GemasActualizadas")
+
+-- Saldo de gemas local (se actualiza con cada evento GemasActualizadas)
+local gemasLocales = 0
 
 -- ============================================================
 -- UI: Barra de vida (esquina superior izquierda)
@@ -104,9 +109,9 @@ overlay.BorderSizePixel        = 0
 overlay.Visible                = false
 overlay.Parent                 = guiMuerte
 
--- Panel central
+-- Panel central (ampliado para dos botones)
 local panel = Instance.new("Frame")
-panel.Size                   = UDim2.new(0, 320, 0, 170)
+panel.Size                   = UDim2.new(0, 340, 0, 245)
 panel.AnchorPoint            = Vector2.new(0.5, 0.5)
 panel.Position               = UDim2.new(0.5, 0, 0.5, 0)
 panel.BackgroundColor3       = Color3.fromRGB(22, 8, 8)
@@ -124,7 +129,7 @@ strokePanel.Color     = Color3.fromRGB(180, 30, 30)
 strokePanel.Thickness = 2
 strokePanel.Parent    = panel
 
--- Texto principal
+-- Texto principal "HAS MUERTO"
 local lblMuerte = Instance.new("TextLabel")
 lblMuerte.Size               = UDim2.new(1, 0, 0, 55)
 lblMuerte.Position           = UDim2.new(0, 0, 0, 22)
@@ -136,13 +141,30 @@ lblMuerte.TextColor3         = Color3.fromRGB(220, 45, 45)
 lblMuerte.TextXAlignment     = Enum.TextXAlignment.Center
 lblMuerte.Parent             = panel
 
--- Botón Reintentar
+-- Botón Revivir aquí (verde si tiene gemas, gris si no)
+local btnRevivir = Instance.new("TextButton")
+btnRevivir.Size             = UDim2.new(0, 300, 0, 52)
+btnRevivir.AnchorPoint      = Vector2.new(0.5, 0)
+btnRevivir.Position         = UDim2.new(0.5, 0, 0, 90)
+btnRevivir.BackgroundColor3 = Color3.fromRGB(35, 130, 55)
+btnRevivir.Text             = "Revivir aquí  (150 ◆)"
+btnRevivir.Font             = Enum.Font.GothamBold
+btnRevivir.TextScaled       = true
+btnRevivir.TextColor3       = Color3.fromRGB(255, 255, 255)
+btnRevivir.AutoButtonColor  = false
+btnRevivir.Parent           = panel
+
+local cornerRevivir = Instance.new("UICorner")
+cornerRevivir.CornerRadius = UDim.new(0, 8)
+cornerRevivir.Parent       = btnRevivir
+
+-- Botón Volver al Lobby (rojo, siempre disponible)
 local btnReintentar = Instance.new("TextButton")
-btnReintentar.Size             = UDim2.new(0, 200, 0, 46)
+btnReintentar.Size             = UDim2.new(0, 300, 0, 42)
 btnReintentar.AnchorPoint      = Vector2.new(0.5, 0)
-btnReintentar.Position         = UDim2.new(0.5, 0, 0, 95)
-btnReintentar.BackgroundColor3 = Color3.fromRGB(35, 130, 55)
-btnReintentar.Text             = "Reintentar"
+btnReintentar.Position         = UDim2.new(0.5, 0, 0, 157)
+btnReintentar.BackgroundColor3 = Color3.fromRGB(160, 35, 35)
+btnReintentar.Text             = "Volver al Lobby"
 btnReintentar.Font             = Enum.Font.GothamBold
 btnReintentar.TextScaled       = true
 btnReintentar.TextColor3       = Color3.fromRGB(255, 255, 255)
@@ -177,6 +199,19 @@ local function actualizarBarraVida(vida, maxVida)
 	end
 
 	lblNumVida.Text = tostring(math.ceil(vida))
+end
+
+-- Actualiza el aspecto del botón Revivir según el saldo de gemas actual
+local function actualizarBotonRevivir()
+	if gemasLocales >= 150 then
+		btnRevivir.BackgroundColor3 = Color3.fromRGB(35, 130, 55)
+		btnRevivir.Text             = "Revivir aquí  (150 ◆)"
+		btnRevivir.Active           = true
+	else
+		btnRevivir.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+		btnRevivir.Text             = "Gemas insuficientes"
+		btnRevivir.Active           = false
+	end
 end
 
 -- Efecto visual de swing: el palo de madera barre un arco desde la mano derecha
@@ -274,6 +309,7 @@ local function configurarCombate(character)
 
 	-- Mostrar pantalla de muerte al morir
 	humanoid.Died:Connect(function()
+		actualizarBotonRevivir()   -- estado del botón según gemas actuales
 		overlay.Visible = true
 		panel.Visible   = true
 	end)
@@ -297,7 +333,25 @@ if player.Character then
 end
 
 -- ============================================================
--- Botón Reintentar
+-- Sincronizar saldo de gemas para activar/desactivar Revivir
+-- ============================================================
+evGemas.OnClientEvent:Connect(function(cantidad)
+	gemasLocales = cantidad
+end)
+
+-- ============================================================
+-- Botón Revivir aquí
+-- ============================================================
+btnRevivir.MouseButton1Click:Connect(function()
+	if not btnRevivir.Active then return end
+	btnRevivir.Active = false
+	btnRevivir.Text   = "Reviviendo..."
+	evRevivireAqui:FireServer()
+end)
+
+-- ============================================================
+-- Botón Volver al Lobby (respawnea en campamento por ahora)
+-- TODO: cuando exista el lobby, cambiar FireServer() por TeleportService
 -- ============================================================
 btnReintentar.MouseButton1Click:Connect(function()
 	if not btnReintentar.Active then return end
@@ -306,10 +360,12 @@ btnReintentar.MouseButton1Click:Connect(function()
 	evReintentar:FireServer()
 end)
 
--- Reactivar el botón cuando el nuevo personaje aparece
+-- Reactivar ambos botones cuando el nuevo personaje aparece
 player.CharacterAdded:Connect(function()
 	btnReintentar.Active = true
-	btnReintentar.Text   = "Reintentar"
+	btnReintentar.Text   = "Volver al Lobby"
+	btnRevivir.Active    = true
+	actualizarBotonRevivir()
 end)
 
 print("[Combate] Cliente de combate activo.")

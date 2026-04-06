@@ -17,6 +17,7 @@ local carpetaEventos          = ReplicatedStorage:WaitForChild("Eventos")
 local evInventarioActualizado = carpetaEventos:WaitForChild("InventarioActualizado")
 local evInventarioLleno       = carpetaEventos:WaitForChild("InventarioLleno")
 local evCampamentoActualizado = carpetaEventos:WaitForChild("CampamentoActualizado")
+local evDescartar             = carpetaEventos:WaitForChild("InventarioDescartar")
 
 -- ============================================================
 -- Panel principal (esquina inferior izquierda)
@@ -197,6 +198,10 @@ local COLORES_RECURSO = {
 -- filasRecurso["Madera"] = TextLabel de la cantidad
 local filasRecurso  = {}
 local framosRecurso = {}   -- framosRecurso["Madera"] = Frame de la fila completa
+
+-- Declaración adelantada: el loop de filas la usa en un closure,
+-- pero su implementación se define más abajo junto al popup.
+local abrirPopupDescarte
 local sepComida, sepHerramientas  -- separadores de sección (visibles solo cuando hay items)
 
 -- Índices donde empiezan las secciones especiales dentro de ORDEN_INVENTARIO
@@ -294,6 +299,21 @@ for i, nombreRecurso in ipairs(Config.ORDEN_INVENTARIO) do
 		fila.Visible = false
 	end
 
+	-- Botón transparente sobre la fila para capturar clics (mouse y móvil)
+	local btnClick = Instance.new("TextButton")
+	btnClick.Size                   = UDim2.new(1, 0, 1, 0)
+	btnClick.BackgroundTransparency = 1
+	btnClick.Text                   = ""
+	btnClick.ZIndex                 = 3
+	btnClick.Parent                 = fila
+
+	local recursoLocal = nombreRecurso  -- closure para capturar el recurso de esta fila
+	btnClick.MouseButton1Click:Connect(function()
+		local cantidad = tonumber(filasRecurso[recursoLocal] and filasRecurso[recursoLocal].Text) or 0
+		if cantidad <= 0 then return end
+		abrirPopupDescarte(recursoLocal, cantidad)
+	end)
+
 	framosRecurso[nombreRecurso] = fila
 	filasRecurso[nombreRecurso]  = lblCantidad
 end
@@ -328,6 +348,135 @@ lblNotif.Parent                = guiNotif
 local cornerNotif = Instance.new("UICorner")
 cornerNotif.CornerRadius = UDim.new(0, 6)
 cornerNotif.Parent       = lblNotif
+
+-- ============================================================
+-- Popup de descarte (se crea una vez y se reutiliza)
+-- ============================================================
+
+local guiDescarte = Instance.new("ScreenGui")
+guiDescarte.Name         = "DescartarUI"
+guiDescarte.ResetOnSpawn = false
+guiDescarte.DisplayOrder = 30
+guiDescarte.Parent       = playerGui
+
+local popupFrame = Instance.new("Frame")
+popupFrame.Name                   = "Popup"
+popupFrame.Size                   = UDim2.new(0, 210, 0, 120)
+popupFrame.AnchorPoint            = Vector2.new(0.5, 0.5)
+popupFrame.Position               = UDim2.new(0.5, 0, 0.5, 0)
+popupFrame.BackgroundColor3       = Color3.fromRGB(12, 12, 18)
+popupFrame.BackgroundTransparency = 0.15
+popupFrame.BorderSizePixel        = 0
+popupFrame.Visible                = false
+popupFrame.Parent                 = guiDescarte
+
+local _pc = Instance.new("UICorner")
+_pc.CornerRadius = UDim.new(0, 10)
+_pc.Parent       = popupFrame
+
+local _ps = Instance.new("UIStroke")
+_ps.Color     = Color3.fromRGB(80, 80, 120)
+_ps.Thickness = 1.5
+_ps.Parent    = popupFrame
+
+-- Título: "[ícono] Recurso ×N"
+local popupTitulo = Instance.new("TextLabel")
+popupTitulo.Name                   = "Titulo"
+popupTitulo.Size                   = UDim2.new(1, -12, 0, 28)
+popupTitulo.Position               = UDim2.new(0, 6, 0, 6)
+popupTitulo.BackgroundTransparency = 1
+popupTitulo.Text                   = ""
+popupTitulo.TextColor3             = Color3.fromRGB(220, 220, 240)
+popupTitulo.TextScaled             = true
+popupTitulo.Font                   = Enum.Font.GothamBold
+popupTitulo.Parent                 = popupFrame
+
+-- Fila de botones de cantidad
+local filaBtn = Instance.new("Frame")
+filaBtn.Size                   = UDim2.new(1, -12, 0, 30)
+filaBtn.Position               = UDim2.new(0, 6, 0, 40)
+filaBtn.BackgroundTransparency = 1
+filaBtn.Parent                 = popupFrame
+
+local layoutBtn = Instance.new("UIListLayout")
+layoutBtn.FillDirection = Enum.FillDirection.Horizontal
+layoutBtn.Padding       = UDim.new(0, 5)
+layoutBtn.Parent        = filaBtn
+
+local function crearBotonDescarte(texto, color)
+	local btn = Instance.new("TextButton")
+	btn.Size             = UDim2.new(0, 58, 1, 0)
+	btn.BackgroundColor3 = color
+	btn.BorderSizePixel  = 0
+	btn.Text             = texto
+	btn.TextColor3       = Color3.fromRGB(240, 240, 240)
+	btn.TextScaled       = true
+	btn.Font             = Enum.Font.GothamBold
+	btn.AutoButtonColor  = false
+	btn.Parent           = filaBtn
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, 6)
+	c.Parent       = btn
+	return btn
+end
+
+local btnUno    = crearBotonDescarte("×1",   Color3.fromRGB(60, 80, 120))
+local btnDiez   = crearBotonDescarte("×10",  Color3.fromRGB(80, 60, 120))
+local btnTodo   = crearBotonDescarte("Todo", Color3.fromRGB(120, 50, 50))
+
+-- Botón cancelar (fila inferior, centrado)
+local btnCancelar = Instance.new("TextButton")
+btnCancelar.Size             = UDim2.new(1, -12, 0, 24)
+btnCancelar.Position         = UDim2.new(0, 6, 0, 82)
+btnCancelar.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+btnCancelar.BorderSizePixel  = 0
+btnCancelar.Text             = "Cancelar"
+btnCancelar.TextColor3       = Color3.fromRGB(160, 160, 180)
+btnCancelar.TextScaled       = true
+btnCancelar.Font             = Enum.Font.Gotham
+btnCancelar.AutoButtonColor  = false
+btnCancelar.Parent           = popupFrame
+local _cc = Instance.new("UICorner")
+_cc.CornerRadius = UDim.new(0, 6)
+_cc.Parent       = btnCancelar
+
+-- Estado del popup
+local recursoActivo  = nil
+local cantidadActiva = 0
+
+local function cerrarPopup()
+	popupFrame.Visible = false
+	recursoActivo      = nil
+	cantidadActiva     = 0
+end
+
+abrirPopupDescarte = function(recurso, cantidad)
+	recursoActivo  = recurso
+	cantidadActiva = cantidad
+	local icono = Config.ICONOS[recurso] or ""
+	popupTitulo.Text   = icono .. " " .. recurso .. "  ×" .. cantidad
+	popupFrame.Visible = true
+end
+
+btnUno.MouseButton1Click:Connect(function()
+	if not recursoActivo then return end
+	evDescartar:FireServer(recursoActivo, 1)
+	cerrarPopup()
+end)
+
+btnDiez.MouseButton1Click:Connect(function()
+	if not recursoActivo then return end
+	evDescartar:FireServer(recursoActivo, math.min(10, cantidadActiva))
+	cerrarPopup()
+end)
+
+btnTodo.MouseButton1Click:Connect(function()
+	if not recursoActivo then return end
+	evDescartar:FireServer(recursoActivo, cantidadActiva)
+	cerrarPopup()
+end)
+
+btnCancelar.MouseButton1Click:Connect(cerrarPopup)
 
 -- ── Animación de bump cuando sube un recurso ────────────────────
 local function animarCambio(label)

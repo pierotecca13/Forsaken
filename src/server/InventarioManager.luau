@@ -139,6 +139,18 @@ function M.descontar(player, costos)
 	return true, nil
 end
 
+-- Descarta (elimina) una cantidad de un recurso del inventario del jugador.
+-- A diferencia de descontar, esta función es iniciada por el jugador.
+function M.descartar(player, recurso, cantidad)
+	local inv = M.obtener(player)
+	if not inv[recurso] then return false end
+	local actual = inv[recurso]
+	if actual <= 0 then return false end
+	inv[recurso] = actual - math.min(cantidad, actual)
+	M.enviar(player)
+	return true
+end
+
 -- Limpieza al desconectarse
 Players.PlayerRemoving:Connect(function(player)
 	inventarios[player] = nil

@@ -1,11 +1,13 @@
 -- Combate.server.luau
 -- Gestiona el spawn del jugador (con control manual para el Reintentar),
 -- entrega el arma inicial, valida ataques cuerpo a cuerpo y aplica daño.
+-- También maneja el revivir en el lugar con costo de gemas.
 
 local Players           = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ArmasConfig"))
+local Config        = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ArmasConfig"))
+local GemasManager  = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("GemasManager"))
 
 -- Desactivar el respawn automático para todos los jugadores;
 -- el spawn se controla manualmente con player:LoadCharacter()
@@ -13,6 +15,9 @@ Players.CharacterAutoLoads = false
 
 -- Posición de spawn: lateral al campamento (que está en 0,0,-20)
 local SPAWN_CF = CFrame.new(5, 3, -14)
+
+-- Costo en gemas para revivir en el lugar de muerte
+local COSTO_REVIVIR = 150
 
 -- ============================================================
 -- Eventos (reutiliza la carpeta de Eventos ya existente)
@@ -27,12 +32,19 @@ local function obtenerOCrear(parent, className, nombre)
 	return obj
 end
 
-local carpetaEventos = obtenerOCrear(ReplicatedStorage, "Folder", "Eventos")
-local evAtacarMelee  = obtenerOCrear(carpetaEventos, "RemoteEvent", "AtacarMelee")
-local evReintentar   = obtenerOCrear(carpetaEventos, "RemoteEvent", "Reintentar")
+local carpetaEventos  = obtenerOCrear(ReplicatedStorage, "Folder", "Eventos")
+local evAtacarMelee   = obtenerOCrear(carpetaEventos, "RemoteEvent", "AtacarMelee")
+local evReintentar    = obtenerOCrear(carpetaEventos, "RemoteEvent", "Reintentar")
+local evRevivireAqui  = obtenerOCrear(carpetaEventos, "RemoteEvent", "RevivireAqui")
 
 -- cooldowns[player] = timestamp del último ataque aceptado
 local cooldowns = {}
+
+-- posicionesMuerte[player] = CFrame donde murió el jugador por última vez
+local posicionesMuerte = {}
+
+-- reviviendo[player] = CFrame destino si el próximo spawn es un revivir
+local reviviendo = {}
 
 -- ============================================================
 -- Crear Tool (arma) con su Handle visual
@@ -96,11 +108,24 @@ Players.PlayerAdded:Connect(function(player)
 
 	-- Cada vez que el personaje aparece: posicionar y dar arma
 	player.CharacterAdded:Connect(function(character)
-		-- Teleportar al campamento base
 		local hrp = character:WaitForChild("HumanoidRootPart", 10)
 		if hrp then
 			task.wait(0.15)   -- margen para que el motor termine de construir el rig
-			hrp.CFrame = SPAWN_CF
+
+			-- Si viene de un revivir: usar la posición de muerte; si no, campamento base
+			if reviviendo[player] then
+				hrp.CFrame        = reviviendo[player]
+				reviviendo[player] = nil
+				-- Dar 50% de vida al revivir
+				local hum = character:FindFirstChildOfClass("Humanoid")
+				if hum then
+					task.wait(0.05)
+					hum.Health = hum.MaxHealth * 0.5
+				end
+			elseif not player:GetAttribute("EnLobby") then
+				-- Solo posicionar en el campamento si no viene del lobby
+				hrp.CFrame = SPAWN_CF
+			end
 		end
 
 		-- Entregar arma equipada (parenting directo al character = equipa de inmediato)
@@ -112,14 +137,25 @@ Players.PlayerAdded:Connect(function(player)
 
 		-- Registrar qué arma tiene (legible desde otros scripts)
 		player:SetAttribute("ArmaEquipada", tipoArma)
+
+		-- Capturar posición cuando el jugador muera (para revivir en el lugar)
+		local hum = character:WaitForChild("Humanoid", 5)
+		if hum and hrp then
+			hum.Died:Connect(function()
+				if hrp and hrp.Parent then
+					posicionesMuerte[player] = CFrame.new(hrp.Position)
+				end
+			end)
+		end
 	end)
 
-	-- Spawn inicial
-	player:LoadCharacter()
+	-- El spawn inicial lo maneja Lobby.server.luau
 end)
 
 Players.PlayerRemoving:Connect(function(player)
-	cooldowns[player] = nil
+	cooldowns[player]        = nil
+	posicionesMuerte[player] = nil
+	reviviendo[player]       = nil
 end)
 
 -- ============================================================
@@ -148,9 +184,35 @@ evAtacarMelee.OnServerEvent:Connect(function(player)
 end)
 
 -- ============================================================
--- Respawn al pulsar Reintentar
+-- Volver al Lobby: redirige al SpawnLobby y resetea el estado
 -- ============================================================
 evReintentar.OnServerEvent:Connect(function(player)
+	player:SetAttribute("EnLobby", true)
+	player:SetAttribute("ArmaEquipada", "Palo")
+	player:SetAttribute("KitComprado", nil)
+	local spawnLobby = workspace:FindFirstChild("SpawnLobby")
+	if spawnLobby then
+		player.RespawnLocation = spawnLobby
+	end
+	player:LoadCharacter()
+end)
+
+-- ============================================================
+-- Revivir en el lugar (descuenta COSTO_REVIVIR gemas)
+-- ============================================================
+evRevivireAqui.OnServerEvent:Connect(function(player)
+	-- Validar y descontar gemas server-side (evita exploits)
+	if not GemasManager.gastar(player, COSTO_REVIVIR) then
+		print(string.format("[Combate] %s intentó revivir pero no tiene gemas suficientes.", player.Name))
+		return
+	end
+
+	-- Marcar destino del próximo spawn como la posición de muerte
+	local cf = posicionesMuerte[player]
+	if cf then
+		reviviendo[player] = cf
+	end
+
 	player:LoadCharacter()
 end)
 
