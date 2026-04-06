@@ -5,9 +5,32 @@
 --        Dorado (6-10 gemas, 2 max, cada 10min)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace         = game:GetService("Workspace")
 
 local GemasManager  = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("GemasManager"))
 local CofresConfig  = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("CofresConfig"))
+
+-- ============================================================
+-- Cargar posiciones de WorldGen (con fallback a CofresConfig)
+-- ============================================================
+local function cargarPosicionesCofres()
+	local carpeta = Workspace:WaitForChild("PosicionesCofres", 10)
+	local lista = {}
+	if carpeta then
+		for _, v in ipairs(carpeta:GetChildren()) do
+			if v:IsA("Vector3Value") then
+				table.insert(lista, v.Value)
+			end
+		end
+	end
+	if #lista == 0 then
+		warn("[Cofres] PosicionesCofres vacío — usando fallback de CofresConfig.")
+		lista = CofresConfig.POSICIONES_SPAWN
+	end
+	return lista
+end
+
+local POSICIONES_SPAWN = cargarPosicionesCofres()
 
 -- ============================================================
 -- Estado de partida
@@ -22,7 +45,7 @@ local posicionesOcupadas = {}   -- { [tostring(Vector3)] = true }
 -- Devuelve una posición libre aleatoria del pool, o nil si no hay
 local function posicionLibre()
 	local disponibles = {}
-	for _, pos in ipairs(CofresConfig.POSICIONES_SPAWN) do
+	for _, pos in ipairs(POSICIONES_SPAWN) do
 		if not posicionesOcupadas[tostring(pos)] then
 			table.insert(disponibles, pos)
 		end
@@ -83,32 +106,10 @@ local function crearCofre(tipo, pos)
 		brillo.Parent       = cofreModel
 	end
 
-	-- Billboard con nombre del cofre
-	local billboard = Instance.new("BillboardGui")
-	billboard.Size        = UDim2.new(0, 160, 0, 30)
-	billboard.StudsOffset = Vector3.new(0, 1.8, 0)
-	billboard.AlwaysOnTop = false
-	billboard.Parent      = cuerpo
-
-	local lblNombre = Instance.new("TextLabel")
-	lblNombre.Size                  = UDim2.new(1, 0, 1, 0)
-	lblNombre.BackgroundColor3      = Color3.fromRGB(10, 10, 10)
-	lblNombre.BackgroundTransparency = 0.4
-	lblNombre.BorderSizePixel       = 0
-	lblNombre.Text                  = cfg.nombre
-	lblNombre.Font                  = Enum.Font.GothamBold
-	lblNombre.TextScaled            = true
-	lblNombre.TextColor3            = Color3.fromRGB(255, 230, 100)
-	lblNombre.Parent                = billboard
-
-	local cornerBb = Instance.new("UICorner")
-	cornerBb.CornerRadius = UDim.new(0, 6)
-	cornerBb.Parent       = lblNombre
-
 	-- ProximityPrompt para recoger
 	local prompt = Instance.new("ProximityPrompt")
-	prompt.ActionText           = "Recoger"
-	prompt.ObjectText           = cfg.nombre
+	prompt.ActionText           = "Abrir"
+	prompt.ObjectText           = "Cofre"
 	prompt.MaxActivationDistance = 8
 	prompt.HoldDuration         = 0
 	prompt.KeyboardKeyCode      = Enum.KeyCode.E

@@ -113,6 +113,7 @@ prompt.ActionText            = "Mejorar"
 prompt.ObjectText            = "Campamento  Nv. 1"
 prompt.KeyboardKeyCode       = Enum.KeyCode.E
 prompt.MaxActivationDistance = 10
+prompt.RequiresLineOfSight   = false
 prompt.Parent                = base
 
 -- Sincronizar textos cuando el nivel cambia

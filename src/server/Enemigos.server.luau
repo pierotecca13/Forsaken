@@ -460,10 +460,33 @@ end
 
 local function iniciarEnemigos()
 	local retardo = 0
+
+	-- Día  → leer de PosicionesEnemigos
+	-- Noche → leer de PosicionesEnemigosCorrompidos (x3 cantidad)
+	-- WaitForChild en vez de FindFirstChild: WorldGen puede no haber terminado aún
+	local nombreCarpeta = esNoche and "PosicionesEnemigosCorrompidos" or "PosicionesEnemigos"
+	local carpetaEnemigos = Workspace:WaitForChild(nombreCarpeta, 15)
+
 	for tipoBase, info in pairs(Config.ENEMIGOS) do
-		local max = info.maxInstancias
-		for i, pos in ipairs(info.puntosSpawn) do
-			if i > max then break end
+		local posiciones = {}
+
+		if carpetaEnemigos then
+			local subCarpeta = carpetaEnemigos:FindFirstChild(tipoBase)
+			if subCarpeta then
+				for _, v in ipairs(subCarpeta:GetChildren()) do
+					if v:IsA("Vector3Value") then
+						table.insert(posiciones, v.Value)
+					end
+				end
+			end
+		end
+
+		-- Fallback: posiciones hardcodeadas del config
+		if #posiciones == 0 then
+			posiciones = info.puntosSpawn or {}
+		end
+
+		for _, pos in ipairs(posiciones) do
 			local ref = {cancelar = false}
 			registroEnemigos[ref] = true
 			task.delay(retardo, function()

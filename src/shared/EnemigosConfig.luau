@@ -25,7 +25,7 @@ return {
 			rangoDeteccion = 14,       -- distancia a la que huye
 			radioPatrulla  = 6,
 			tiempoRespawn  = 20,
-			maxInstancias  = 5,
+			maxInstancias  = 12,
 			comportamiento = "pasivo",
 			colorCuerpo    = Color3.fromRGB(235, 210, 185),
 			colorCabeza    = Color3.fromRGB(215, 190, 160),
@@ -53,7 +53,7 @@ return {
 			rangoDeteccion = 18,
 			radioPatrulla  = 8,
 			tiempoRespawn  = 30,
-			maxInstancias  = 3,
+			maxInstancias  = 8,
 			comportamiento = "pasivo",  -- huye; ataca si fue dañado
 			colorCuerpo    = Color3.fromRGB(200, 100, 30),
 			colorCabeza    = Color3.fromRGB(175, 85, 25),
@@ -80,7 +80,7 @@ return {
 			rangoDeteccion = 20,
 			radioPatrulla  = 12,
 			tiempoRespawn  = 40,
-			maxInstancias  = 4,
+			maxInstancias  = 8,
 			comportamiento = "agresivo",
 			colorCuerpo    = Color3.fromRGB(80, 80, 95),
 			colorCabeza    = Color3.fromRGB(65, 65, 80),
@@ -109,7 +109,7 @@ return {
 			rangoDeteccion = 8,      -- solo ataca si el jugador se acerca mucho
 			radioPatrulla  = 18,
 			tiempoRespawn  = 60,
-			maxInstancias  = 2,
+			maxInstancias  = 4,
 			comportamiento = "cauto",
 			colorCuerpo    = Color3.fromRGB(100, 70, 40),
 			colorCabeza    = Color3.fromRGB(85, 58, 33),
