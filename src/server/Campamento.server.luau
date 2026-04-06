@@ -8,6 +8,8 @@ local Workspace         = game:GetService("Workspace")
 print("[Campamento] Cargando...")
 
 local InventarioManager = require(script.Parent:WaitForChild("InventarioManager"))
+local TrebolManager     = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrebolManager"))
+local TrebolConfig      = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrebolConfig"))
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("CampamentoConfig"))
 
 print("[Campamento] Modulos cargados OK")
@@ -162,6 +164,19 @@ evSolicitarMejora.OnServerEvent:Connect(function(player)
 			mensaje = "Error: nivel sin configurar.",
 		})
 		return
+	end
+
+	-- Validar trébolees requeridos (no se consumen, solo deben poseerse)
+	local treboles = datosNivel.treboles or {}
+	for _, tipo in ipairs(treboles) do
+		if not TrebolManager.tieneHoja(player, tipo) then
+			local nombreBioma = TrebolConfig.HOJAS[tipo] and TrebolConfig.HOJAS[tipo].nombre or tipo
+			evResultadoMejora:FireClient(player, {
+				exito   = false,
+				mensaje = "Necesitas la Hoja del Trebol de " .. nombreBioma .. ".",
+			})
+			return
+		end
 	end
 
 	-- Intentar descontar del inventario

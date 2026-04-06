@@ -46,7 +46,7 @@ local ENTRADA_POS      = Vector3.new(65, 2, 120)    -- fuera del muro oeste
 local TELETRANSPORTE   = Vector3.new(80, 2, 120)    -- dentro de la arena
 local VAREK_SPAWN_POS  = Vector3.new(112, 9, 120)   -- este de la arena
 
-local VAREK_VIDA_MAX   = 300
+local VAREK_VIDA_MAX   = 20
 local VAREK_DANO       = 20
 local VAREK_VELOCIDAD  = 10
 local RANGO_ATAQUE     = 12

@@ -26,11 +26,11 @@ screenGui.ResetOnSpawn  = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent        = playerGui
 
--- Marco principal
+-- Marco principal — reducido en alto para ganar visual del mapa
 local marcoTimer = Instance.new("Frame")
 marcoTimer.Name                  = "MarcoTimer"
-marcoTimer.Size                  = UDim2.new(0, 210, 0, 52)
-marcoTimer.Position              = UDim2.new(0.5, -105, 0, 12)
+marcoTimer.Size                  = UDim2.new(0, 160, 0, 36)
+marcoTimer.Position              = UDim2.new(0.5, -80, 0, 0)
 marcoTimer.BackgroundColor3      = Color3.fromRGB(10, 10, 15)
 marcoTimer.BackgroundTransparency = 0.35
 marcoTimer.BorderSizePixel       = 0
@@ -77,8 +77,8 @@ lblTimer.Parent             = marcoTimer
 -- Barra de progreso de la fase (fondo)
 local barraFondo = Instance.new("Frame")
 barraFondo.Name              = "BarraFondo"
-barraFondo.Size              = UDim2.new(0, 180, 0, 5)
-barraFondo.Position          = UDim2.new(0, 15, 1, -9)
+barraFondo.Size              = UDim2.new(0, 136, 0, 4)
+barraFondo.Position          = UDim2.new(0, 12, 1, -7)
 barraFondo.BackgroundColor3  = Color3.fromRGB(40, 40, 55)
 barraFondo.BorderSizePixel   = 0
 barraFondo.Parent            = marcoTimer

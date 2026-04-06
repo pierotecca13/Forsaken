@@ -50,9 +50,9 @@ screenGui.Parent       = playerGui
 -- Marco exterior (fondo oscuro, centrado en la parte inferior)
 local marco = Instance.new("Frame")
 marco.Name                   = "MarcoStamina"
-marco.Size                   = UDim2.new(0, 210, 0, 36)
+marco.Size                   = UDim2.new(0, 165, 0, 28)   -- mismo ancho que inventario
 marco.AnchorPoint            = Vector2.new(0, 0)
-marco.Position               = UDim2.new(0, 12, 0, 56)   -- debajo del HP bar
+marco.Position               = UDim2.new(0, 12, 0, 36)   -- debajo del HP bar
 marco.BackgroundColor3       = Color3.fromRGB(12, 12, 18)
 marco.BackgroundTransparency = 0.3
 marco.BorderSizePixel        = 0
@@ -77,8 +77,8 @@ lblTitulo.Parent             = marco
 -- Fondo de la barra
 local barraFondo = Instance.new("Frame")
 barraFondo.Name              = "BarraFondo"
-barraFondo.Size              = UDim2.new(0, 125, 0, 10)
-barraFondo.Position          = UDim2.new(0, 40, 0.5, -5)
+barraFondo.Size              = UDim2.new(0, 85, 0, 8)
+barraFondo.Position          = UDim2.new(0, 38, 0.5, -4)
 barraFondo.BackgroundColor3  = Color3.fromRGB(35, 35, 50)
 barraFondo.BorderSizePixel   = 0
 barraFondo.Parent            = marco
@@ -102,8 +102,8 @@ cornerRelleno.Parent       = barraRelleno
 -- Número de stamina a la derecha
 local lblNumero = Instance.new("TextLabel")
 lblNumero.Name               = "Numero"
-lblNumero.Size               = UDim2.new(0, 38, 1, 0)
-lblNumero.Position           = UDim2.new(0, 168, 0, 0)
+lblNumero.Size               = UDim2.new(0, 34, 1, 0)
+lblNumero.Position           = UDim2.new(0, 128, 0, 0)
 lblNumero.BackgroundTransparency = 1
 lblNumero.Text               = "100"
 lblNumero.Font               = Enum.Font.GothamBold
@@ -202,8 +202,19 @@ ContextActionService:BindAction(
 	Enum.KeyCode.LeftShift
 )
 -- Posicionar el botón táctil en la esquina inferior derecha
-ContextActionService:SetPosition("ForsakenSprint", UDim2.new(1, -80, 1, -80))
+-- Sprint: al nivel exacto del trébol (top en Y=1,-112, bottom en Y=1,-76)
+-- Ocupa 50×36px, pegado a la izquierda de COMER que va al lado del trébol
+ContextActionService:SetPosition("ForsakenSprint", UDim2.new(1, -173, 1, -112))
 ContextActionService:SetTitle("ForsakenSprint", "SPRINT")
+
+-- Achicar el botón para que coincida con la altura del trébol
+task.delay(0.2, function()
+	local btn = ContextActionService:GetButton("ForsakenSprint")
+	if not btn then return end
+	btn.Size = UDim2.new(0, 50, 0, 36)
+	local lbl = btn:FindFirstChildWhichIsA("TextLabel")
+	if lbl then lbl.TextSize = 9 end
+end)
 
 -- ============================================================
 -- Loop principal: actualizar stamina y velocidad cada frame

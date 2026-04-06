@@ -7,10 +7,11 @@
 --   · Sin pulsar F durante 2 s → come automáticamente el seleccionado
 --   · Escape → cierra el picker sin comer
 
-local Players           = game:GetService("Players")
-local UserInputService  = game:GetService("UserInputService")
-local TweenService      = game:GetService("TweenService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players              = game:GetService("Players")
+local UserInputService     = game:GetService("UserInputService")
+local TweenService         = game:GetService("TweenService")
+local ReplicatedStorage    = game:GetService("ReplicatedStorage")
+local ContextActionService = game:GetService("ContextActionService")
 
 local ComidaConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ComidaConfig"))
 
@@ -107,7 +108,7 @@ lblHint.AnchorPoint           = Vector2.new(0.5, 0)
 lblHint.Size                  = UDim2.new(0, 280, 0, 12)
 lblHint.Position              = UDim2.new(0.5, 0, 1, 4)
 lblHint.BackgroundTransparency = 1
-lblHint.Text                  = "F: ciclar  ·  Esc: cancelar"
+lblHint.Text                  = "F / COMER: ciclar  ·  Esc: cancelar"
 lblHint.Font                  = Enum.Font.Gotham
 lblHint.TextScaled            = true
 lblHint.TextColor3            = Color3.fromRGB(140, 140, 140)
@@ -216,37 +217,47 @@ local function comer()
 	cerrarPicker()
 end
 
--- ── Tecla F ─────────────────────────────────────────────────────
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-	if input.KeyCode ~= Enum.KeyCode.F then return end
+-- ── Acción COMER: F en PC + botón táctil en móvil ───────────────
+local function accionComer(_, inputState, _)
+	if inputState ~= Enum.UserInputState.Begin then
+		return Enum.ContextActionResult.Pass
+	end
 
 	local lista = listaDisponible()
 
 	if #lista == 0 then
-		-- Sin comida: mostrar aviso breve
 		lblFeedback.Text             = "Sin alimentos"
 		lblFeedback.TextColor3       = Color3.fromRGB(190, 190, 190)
 		lblFeedback.TextTransparency = 0
-		TweenService:Create(
-			lblFeedback,
-			TweenInfo.new(1.2),
-			{ TextTransparency = 1 }
-		):Play()
-		return
+		TweenService:Create(lblFeedback, TweenInfo.new(1.2), { TextTransparency = 1 }):Play()
+		return Enum.ContextActionResult.Pass
 	end
 
 	if not pickerAbierto then
-		-- Primera pulsación: abrir el picker apuntando al más potente disponible
 		seleccionIdx = #lista
 		abrirPicker(lista)
 	else
-		-- Pulsaciones siguientes: ciclar hacia el más débil (y volver al inicio)
 		seleccionIdx = seleccionIdx - 1
 		if seleccionIdx < 1 then seleccionIdx = #lista end
-		timerAutoEat = DELAY_AUTO_EAT   -- reiniciar cuenta regresiva al ciclar
+		timerAutoEat = DELAY_AUTO_EAT
 		actualizarPicker(lista)
 	end
+	return Enum.ContextActionResult.Pass
+end
+
+ContextActionService:BindAction("ForsakenComer", accionComer, true, Enum.KeyCode.F)
+-- Posicionar en la esquina inferior izquierda (encima del inventario)
+-- COMER: al nivel exacto del trébol, a la izquierda de SPRINT
+ContextActionService:SetPosition("ForsakenComer", UDim2.new(1, -228, 1, -112))
+ContextActionService:SetTitle("ForsakenComer", "COMER")
+
+-- Achicar el botón para que coincida con la altura del trébol
+task.delay(0.2, function()
+	local btn = ContextActionService:GetButton("ForsakenComer")
+	if not btn then return end
+	btn.Size = UDim2.new(0, 50, 0, 36)
+	local lbl = btn:FindFirstChildWhichIsA("TextLabel")
+	if lbl then lbl.TextSize = 9 end
 end)
 
 -- Cerrar con Escape

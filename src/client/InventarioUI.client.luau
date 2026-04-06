@@ -18,6 +18,7 @@ local evInventarioActualizado = carpetaEventos:WaitForChild("InventarioActualiza
 local evInventarioLleno       = carpetaEventos:WaitForChild("InventarioLleno")
 local evCampamentoActualizado = carpetaEventos:WaitForChild("CampamentoActualizado")
 local evDescartar             = carpetaEventos:WaitForChild("InventarioDescartar")
+local evColocar               = carpetaEventos:WaitForChild("ColocarHerramienta")
 
 -- ============================================================
 -- Panel principal (esquina inferior izquierda)
@@ -33,7 +34,7 @@ screenGui.Parent         = playerGui
 local marco = Instance.new("Frame")
 marco.Name                   = "MarcoInventario"
 marco.AnchorPoint            = Vector2.new(0, 1)           -- ancla esquina inferior-izquierda
-marco.Size                   = UDim2.new(0, 175, 0, 260)   -- alto fijo; los recursos están dentro de un scroll
+marco.Size                   = UDim2.new(0, 165, 0, 200)   -- alto reducido para no llegar al ST bar
 marco.Position               = UDim2.new(0, 12, 1, -12)    -- 12 px del borde izquierdo y del borde inferior
 marco.BackgroundColor3       = Color3.fromRGB(10, 10, 15)
 marco.BackgroundTransparency = 0.35
@@ -154,7 +155,7 @@ sepScrollHeader.Parent           = marco
 
 local scrollRecursos = Instance.new("ScrollingFrame")
 scrollRecursos.Name                   = "ScrollRecursos"
-scrollRecursos.Size                   = UDim2.new(1, 0, 0, 182)
+scrollRecursos.Size                   = UDim2.new(1, 0, 0, 122)
 scrollRecursos.BackgroundTransparency = 1
 scrollRecursos.BorderSizePixel        = 0
 scrollRecursos.ScrollBarThickness     = 3
@@ -199,9 +200,9 @@ local COLORES_RECURSO = {
 local filasRecurso  = {}
 local framosRecurso = {}   -- framosRecurso["Madera"] = Frame de la fila completa
 
--- Declaración adelantada: el loop de filas la usa en un closure,
--- pero su implementación se define más abajo junto al popup.
+-- Declaraciones adelantadas usadas en closures del loop de filas
 local abrirPopupDescarte
+local abrirPopupHerramienta
 local sepComida, sepHerramientas  -- separadores de sección (visibles solo cuando hay items)
 
 -- Índices donde empiezan las secciones especiales dentro de ORDEN_INVENTARIO
@@ -307,11 +308,16 @@ for i, nombreRecurso in ipairs(Config.ORDEN_INVENTARIO) do
 	btnClick.ZIndex                 = 3
 	btnClick.Parent                 = fila
 
-	local recursoLocal = nombreRecurso  -- closure para capturar el recurso de esta fila
+	local recursoLocal    = nombreRecurso  -- closure para capturar el recurso de esta fila
+	local esHerramienta = table.find(Config.ORDEN_HERRAMIENTAS, nombreRecurso) ~= nil
 	btnClick.MouseButton1Click:Connect(function()
 		local cantidad = tonumber(filasRecurso[recursoLocal] and filasRecurso[recursoLocal].Text) or 0
 		if cantidad <= 0 then return end
-		abrirPopupDescarte(recursoLocal, cantidad)
+		if esHerramienta then
+			abrirPopupHerramienta(recursoLocal)
+		else
+			abrirPopupDescarte(recursoLocal, cantidad)
+		end
 	end)
 
 	framosRecurso[nombreRecurso] = fila
@@ -420,9 +426,12 @@ local function crearBotonDescarte(texto, color)
 	return btn
 end
 
-local btnUno    = crearBotonDescarte("×1",   Color3.fromRGB(60, 80, 120))
-local btnDiez   = crearBotonDescarte("×10",  Color3.fromRGB(80, 60, 120))
-local btnTodo   = crearBotonDescarte("Todo", Color3.fromRGB(120, 50, 50))
+local btnUno    = crearBotonDescarte("×1",      Color3.fromRGB(60, 80, 120))
+local btnDiez   = crearBotonDescarte("×10",     Color3.fromRGB(80, 60, 120))
+local btnTodo   = crearBotonDescarte("Todo",    Color3.fromRGB(120, 50, 50))
+local btnColocar = crearBotonDescarte("Colocar", Color3.fromRGB(40, 110, 60))
+btnColocar.Size    = UDim2.new(1, 0, 1, 0)  -- ocupa todo el ancho cuando está solo
+btnColocar.Visible = false
 
 -- Botón cancelar (fila inferior, centrado)
 local btnCancelar = Instance.new("TextButton")
@@ -455,6 +464,24 @@ abrirPopupDescarte = function(recurso, cantidad)
 	cantidadActiva = cantidad
 	local icono = Config.ICONOS[recurso] or ""
 	popupTitulo.Text   = icono .. " " .. recurso .. "  ×" .. cantidad
+	-- Mostrar botones de cantidad, ocultar botón colocar
+	btnUno.Visible    = true
+	btnDiez.Visible   = true
+	btnTodo.Visible   = true
+	btnColocar.Visible = false
+	popupFrame.Visible = true
+end
+
+abrirPopupHerramienta = function(recurso)
+	recursoActivo  = recurso
+	cantidadActiva = 1
+	local icono = Config.ICONOS[recurso] or ""
+	popupTitulo.Text = icono .. " " .. recurso
+	-- Mostrar solo el botón colocar, ocultar botones de cantidad
+	btnUno.Visible    = false
+	btnDiez.Visible   = false
+	btnTodo.Visible   = false
+	btnColocar.Visible = true
 	popupFrame.Visible = true
 end
 
@@ -477,6 +504,12 @@ btnTodo.MouseButton1Click:Connect(function()
 end)
 
 btnCancelar.MouseButton1Click:Connect(cerrarPopup)
+
+btnColocar.MouseButton1Click:Connect(function()
+	if not recursoActivo then return end
+	evColocar:FireServer(recursoActivo)
+	cerrarPopup()
+end)
 
 -- ── Animación de bump cuando sube un recurso ────────────────────
 local function animarCambio(label)

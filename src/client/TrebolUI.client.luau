@@ -19,18 +19,18 @@ local evHoja         = carpetaEventos:WaitForChild("HojaTrebolActualizada")
 -- ============================================================
 -- Constantes de diseño
 -- ============================================================
-local TAMANO_CELDA  = 36   -- px de cada celda
-local ESPACIADO     = 4    -- px entre celdas
+local TAMANO_CELDA  = 26   -- px de cada celda (antes 36, ahora fila única)
+local ESPACIADO     = 3    -- px entre celdas
 local COLOR_VACIA   = Color3.fromRGB(28, 28, 32)
 local COLOR_BORDE   = Color3.fromRGB(60, 55, 70)
 local ALPHA_VACIA   = 0.35
 
--- Disposición 2×2: fila, columna de cada hoja
+-- Disposición 4×1: una sola fila horizontal  B | H | R | D
 local DISPOSICION = {
 	Verde  = { fila = 1, col = 1 },
 	Azul   = { fila = 1, col = 2 },
-	Gris   = { fila = 2, col = 1 },
-	Dorada = { fila = 2, col = 2 },
+	Gris   = { fila = 1, col = 3 },
+	Dorada = { fila = 1, col = 4 },
 }
 
 -- ============================================================
@@ -42,16 +42,16 @@ screenGui.ResetOnSpawn  = false
 screenGui.DisplayOrder  = 12
 screenGui.Parent        = playerGui
 
--- Marco contenedor del panel (auto-tamaño fijo: 2 celdas + espaciado)
-local ancho = TAMANO_CELDA * 2 + ESPACIADO
-local alto  = TAMANO_CELDA * 2 + ESPACIADO
+-- Marco contenedor: 4 celdas en una sola fila
+local ancho = TAMANO_CELDA * 4 + ESPACIADO * 3
+local alto  = TAMANO_CELDA
 
 local marco = Instance.new("Frame")
 marco.Name                   = "MarcoTrebol"
 marco.AnchorPoint            = Vector2.new(1, 1)
 marco.Size                   = UDim2.new(0, ancho + 10, 0, alto + 10)
--- Queda encima del EquipoUI (~50 px) con 8 px de separación
-marco.Position               = UDim2.new(1, -12, 1, -70)
+-- Queda encima del EquipoUI (~54 px) con 8 px de separación
+marco.Position               = UDim2.new(1, -12, 1, -76)
 marco.BackgroundColor3       = Color3.fromRGB(10, 10, 15)
 marco.BackgroundTransparency = 0.4
 marco.BorderSizePixel        = 0
@@ -74,7 +74,7 @@ local celdas = {}   -- celdas[tipo] = Frame celda
 for tipo, pos in pairs(DISPOSICION) do
 	local info  = TrebolConfig.HOJAS[tipo]
 	local xBase = 5 + (pos.col - 1) * (TAMANO_CELDA + ESPACIADO)
-	local yBase = 5 + (pos.fila - 1) * (TAMANO_CELDA + ESPACIADO)
+	local yBase = 5   -- fila única, siempre en Y=5
 
 	local celda = Instance.new("Frame")
 	celda.Name                   = "Celda_" .. tipo

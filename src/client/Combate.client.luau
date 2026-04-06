@@ -32,8 +32,8 @@ guiVida.ResetOnSpawn  = false
 guiVida.Parent        = playerGui
 
 local marcoVida = Instance.new("Frame")
-marcoVida.Size                   = UDim2.new(0, 210, 0, 36)
-marcoVida.Position               = UDim2.new(0, 12, 0, 12)
+marcoVida.Size                   = UDim2.new(0, 165, 0, 28)   -- mismo ancho que inventario
+marcoVida.Position               = UDim2.new(0, 12, 0, 4)
 marcoVida.BackgroundColor3       = Color3.fromRGB(12, 12, 18)
 marcoVida.BackgroundTransparency = 0.3
 marcoVida.BorderSizePixel        = 0
@@ -57,8 +57,8 @@ lblHP.Parent             = marcoVida
 
 -- Fondo gris oscuro de la barra
 local barraFondo = Instance.new("Frame")
-barraFondo.Size             = UDim2.new(0, 125, 0, 10)
-barraFondo.Position         = UDim2.new(0, 40, 0.5, -5)
+barraFondo.Size             = UDim2.new(0, 85, 0, 8)
+barraFondo.Position         = UDim2.new(0, 38, 0.5, -4)
 barraFondo.BackgroundColor3 = Color3.fromRGB(40, 15, 15)
 barraFondo.BorderSizePixel  = 0
 barraFondo.Parent           = marcoVida
@@ -81,8 +81,8 @@ cornerBarraR.Parent       = barraRelleno
 
 -- Número de vida (ej.: "85")
 local lblNumVida = Instance.new("TextLabel")
-lblNumVida.Size               = UDim2.new(0, 38, 1, 0)
-lblNumVida.Position           = UDim2.new(0, 168, 0, 0)
+lblNumVida.Size               = UDim2.new(0, 34, 1, 0)
+lblNumVida.Position           = UDim2.new(0, 128, 0, 0)
 lblNumVida.BackgroundTransparency = 1
 lblNumVida.Text               = "100"
 lblNumVida.Font               = Enum.Font.GothamBold

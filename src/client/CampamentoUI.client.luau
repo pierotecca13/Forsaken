@@ -6,6 +6,8 @@ local Players           = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService      = game:GetService("TweenService")
 
+local TrebolConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrebolConfig"))
+
 local player    = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
@@ -262,8 +264,8 @@ layoutCosto.SortOrder = Enum.SortOrder.LayoutOrder
 layoutCosto.Padding   = UDim.new(0, 3)
 layoutCosto.Parent    = costoFrame
 
--- Pre-creamos 4 filas de costo (máximo posible); se muestran según el nivel
-local MAX_COSTO = 4
+-- Pre-creamos 6 filas de costo (recursos + trébolees); se muestran según el nivel
+local MAX_COSTO = 6
 local filasCosto = {}
 
 for i = 1, MAX_COSTO do
@@ -401,6 +403,16 @@ local function puedeCostearse(inventario, costos)
 	return true
 end
 
+-- Comprueba si el jugador posee todos los trébolees requeridos
+local function puedeCostearseTreboles(treboles)
+	for _, tipo in ipairs(treboles or {}) do
+		if player:GetAttribute("Hoja" .. tipo) ~= true then
+			return false
+		end
+	end
+	return true
+end
+
 local function actualizarBtnMesa(inventario)
 	if mesaConstruida then
 		btnMesa.Text             = "✓  Mesa de Trabajo construida"
@@ -459,30 +471,52 @@ local function actualizarInventarioUI(inventario, ordenDisplay, nombres)
 	end
 end
 
--- Rellena las filas de costo para el nivel actual
-local function actualizarCostoUI(costos, inventario, nombres, ordenDisplay)
+-- Rellena las filas de costo para el nivel actual (recursos + trébolees)
+local function actualizarCostoUI(costos, inventario, nombres, ordenDisplay, treboles)
 	-- Ocultar todas las filas primero
 	for i = 1, MAX_COSTO do
 		filasCosto[i].fila.Visible = false
 	end
 
 	local idx = 1
-	-- Recorrer en el orden definido por el servidor para consistencia visual
+	-- Recursos materiales
 	for _, recurso in ipairs(ordenDisplay or {}) do
 		local cantidad = costos[recurso]
 		if cantidad and idx <= MAX_COSTO then
-			local tienes    = inventario[recurso] or 0
+			local tienes     = inventario[recurso] or 0
 			local puedePagar = tienes >= cantidad
-			local nombre    = (nombres and nombres[recurso]) or recurso
-			local ref       = filasCosto[idx]
+			local nombre     = (nombres and nombres[recurso]) or recurso
+			local ref        = filasCosto[idx]
 
-			ref.recurso.Text  = nombre
-			ref.necesita.Text = "Nec. " .. cantidad
-			ref.tienes.Text   = "Tienes " .. tienes
-			ref.tienes.TextColor3 = puedePagar
+			ref.recurso.Text       = nombre
+			ref.recurso.TextColor3 = Color3.fromRGB(215, 215, 215)
+			ref.necesita.Text      = "Nec. " .. cantidad
+			ref.tienes.Text        = "Tienes " .. tienes
+			ref.tienes.TextColor3  = puedePagar
 				and Color3.fromRGB(90, 220, 90)
 				or  Color3.fromRGB(255, 70, 70)
-			ref.fila.Visible  = true
+			ref.fila.Visible = true
+			idx = idx + 1
+		end
+	end
+
+	-- Trébolees requeridos (se poseen, no se consumen)
+	for _, tipo in ipairs(treboles or {}) do
+		if idx <= MAX_COSTO then
+			local tieneHoja = player:GetAttribute("Hoja" .. tipo) == true
+			local cfg       = TrebolConfig.HOJAS[tipo]
+			local nombre    = cfg and ("Hoja " .. cfg.nombre) or ("Hoja " .. tipo)
+			local color     = cfg and cfg.color or Color3.fromRGB(80, 210, 80)
+			local ref       = filasCosto[idx]
+
+			ref.recurso.Text       = nombre
+			ref.recurso.TextColor3 = color
+			ref.necesita.Text      = "Requerida"
+			ref.tienes.Text        = tieneHoja and "✓ Tienes" or "✗ Falta"
+			ref.tienes.TextColor3  = tieneHoja
+				and Color3.fromRGB(90, 220, 90)
+				or  Color3.fromRGB(255, 70, 70)
+			ref.fila.Visible = true
 			idx = idx + 1
 		end
 	end
@@ -528,10 +562,12 @@ local function abrirMenu(datos)
 				datosNivel.recursos,
 				datos.inventario,
 				datos.nombresRec,
-				datos.ordenDisplay
+				datos.ordenDisplay,
+				datosNivel.treboles
 			)
 
 			local puede = puedeCostearse(datos.inventario, datosNivel.recursos)
+				and puedeCostearseTreboles(datosNivel.treboles)
 			btnMejorar.Active   = puede
 			btnMejorar.BackgroundColor3 = puede
 				and Color3.fromRGB(35, 130, 55)
@@ -603,9 +639,11 @@ evInventarioActualizado.OnClientEvent:Connect(function(inventario)
 	if datosNivel then
 		actualizarCostoUI(
 			datosNivel.recursos, inventario,
-			datosActuales.nombresRec, datosActuales.ordenDisplay
+			datosActuales.nombresRec, datosActuales.ordenDisplay,
+			datosNivel.treboles
 		)
 		local puede = puedeCostearse(inventario, datosNivel.recursos)
+			and puedeCostearseTreboles(datosNivel.treboles)
 		btnMejorar.Active   = puede
 		btnMejorar.BackgroundColor3 = puede
 			and Color3.fromRGB(35, 130, 55)
@@ -672,6 +710,27 @@ evCampamentoActualizado.OnClientEvent:Connect(function(nuevoNivel, zona)
 		TweenService:Create(notifFrame, TweenInfo.new(1), { BackgroundTransparency = 1 }):Play()
 		TweenService:Create(lblNotif,   TweenInfo.new(1), { TextTransparency = 1 }):Play()
 		task.delay(1, function() notifGui:Destroy() end)
+	end)
+end)
+
+-- Si el jugador obtiene una hoja mientras el menú está abierto, refrescar el costo
+task.spawn(function()
+	local evHoja = carpetaEventos:WaitForChild("HojaTrebolActualizada")
+	evHoja.OnClientEvent:Connect(function()
+		if not menuAbierto or not datosActuales then return end
+		local datosNivel = datosActuales.costos and datosActuales.costos[datosActuales.nivel]
+		if not datosNivel then return end
+		actualizarCostoUI(
+			datosNivel.recursos, datosActuales.inventario,
+			datosActuales.nombresRec, datosActuales.ordenDisplay,
+			datosNivel.treboles
+		)
+		local puede = puedeCostearse(datosActuales.inventario, datosNivel.recursos)
+			and puedeCostearseTreboles(datosNivel.treboles)
+		btnMejorar.Active   = puede
+		btnMejorar.BackgroundColor3 = puede
+			and Color3.fromRGB(35, 130, 55)
+			or  Color3.fromRGB(90, 45, 45)
 	end)
 end)
 
