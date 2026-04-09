@@ -40,7 +40,7 @@ return {
 			cantidadMin   = 1,
 			cantidadMax   = 1,
 			respawnTiempo = 60,
-			tamano        = Vector3.new(2, 2, 2),
+			tamano        = Vector3.new(0.7, 0.85, 0.7),
 			color         = Color3.fromRGB(180, 100, 210),
 			material      = Enum.Material.Neon,
 			forma         = Enum.PartType.Ball,

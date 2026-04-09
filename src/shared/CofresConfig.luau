@@ -11,7 +11,7 @@ return {
 			gemasMin   = 1,
 			gemasMax   = 2,
 			maxPartida = 5,      -- máximo que pueden aparecer en una partida
-			intervalo  = 10,    -- segundos entre spawns (6 min)
+			intervalo  = 5,    -- segundos entre spawns (6 min)
 			color      = Color3.fromRGB(139, 90, 43),
 			material   = Enum.Material.Wood,
 		},
@@ -20,7 +20,7 @@ return {
 			gemasMin   = 3,
 			gemasMax   = 5,
 			maxPartida = 3,
-			intervalo  = 60,    -- 8 min
+			intervalo  = 5,    -- 8 min
 			color      = Color3.fromRGB(150, 150, 150),
 			material   = Enum.Material.Slate,
 		},
@@ -29,7 +29,7 @@ return {
 			gemasMin   = 6,
 			gemasMax   = 10,
 			maxPartida = 2,
-			intervalo  = 120,    -- 10 min
+			intervalo  = 5,    -- 10 min
 			color      = Color3.fromRGB(255, 200, 0),
 			material   = Enum.Material.SmoothPlastic,
 		},

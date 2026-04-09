@@ -6,9 +6,17 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace         = game:GetService("Workspace")
+local ServerStorage     = game:GetService("ServerStorage")
 
 local GemasManager  = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("GemasManager"))
 local CofresConfig  = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("CofresConfig"))
+
+-- Plantilla del cofre de madera 3D (modelo "CofreMadera" de Culmbzy en ServerStorage)
+local plantillaCofreMadera  = ServerStorage:FindFirstChild("CofreMadera")
+-- Plantilla del cofre de piedra 3D (modelo "CofrePiedra" de EmpressRaven en ServerStorage)
+local plantillaCofrePiedra  = ServerStorage:FindFirstChild("CofrePiedra")
+-- Plantilla del cofre dorado 3D (modelo "CofresDorado" de julekpolak551 en ServerStorage)
+local plantillaCofresDorado = ServerStorage:FindFirstChild("CofresDorado")
 
 -- ============================================================
 -- Cargar posiciones de WorldGen (con fallback a CofresConfig)
@@ -55,10 +63,103 @@ local function posicionLibre()
 end
 
 -- ============================================================
+-- Cofres 3D con modelo desde ServerStorage
+-- Soporta MeshPart directo o Model con múltiples partes.
+-- ============================================================
+local TAMANO_COFRE = Vector3.new(3, 2.3, 1.8)  -- tamaño uniforme para todos los cofres 3D
+
+local function crearCofre3D(plantilla, nombre, pos, cfg)
+	local modelo = plantilla:Clone()
+	modelo.Name = nombre
+
+	-- Deshabilitar scripts decorativos del modelo de Toolbox
+	for _, desc in ipairs(modelo:GetDescendants()) do
+		if desc:IsA("Script") or desc:IsA("LocalScript") then
+			desc.Disabled = true
+		end
+	end
+
+	local partes = {}
+	local ancla
+
+	if modelo:IsA("BasePart") then
+		local s      = modelo.Size
+		local factor = math.min(TAMANO_COFRE.X / s.X, TAMANO_COFRE.Y / s.Y, TAMANO_COFRE.Z / s.Z)
+		modelo.Size       = s * factor
+		modelo.CFrame     = CFrame.new(pos.X, 0.4 + modelo.Size.Y / 2, pos.Z)
+		modelo.Anchored   = true
+		modelo.CanCollide = true
+		table.insert(partes, modelo)
+		ancla = modelo
+	else
+		local _, bbSize = modelo:GetBoundingBox()
+		local factor    = math.min(TAMANO_COFRE.X / bbSize.X, TAMANO_COFRE.Y / bbSize.Y, TAMANO_COFRE.Z / bbSize.Z)
+		modelo:ScaleTo(factor)
+
+		local bbCF2, bbSize2 = modelo:GetBoundingBox()
+		local bottomY     = bbCF2.Position.Y - bbSize2.Y / 2
+		local deltaY      = 0.4 - bottomY
+		local pivotActual = modelo:GetPivot()
+		modelo:PivotTo(CFrame.new(pos.X, pivotActual.Position.Y + deltaY, pos.Z))
+
+		for _, desc in ipairs(modelo:GetDescendants()) do
+			if desc:IsA("BasePart") then
+				table.insert(partes, desc)
+			end
+		end
+		ancla = modelo.PrimaryPart or partes[1]
+	end
+
+	modelo.Parent = workspace
+	if not ancla then return end
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText            = "Abrir"
+	prompt.ObjectText            = "Cofre"
+	prompt.MaxActivationDistance = 8
+	prompt.HoldDuration          = 0
+	prompt.KeyboardKeyCode       = Enum.KeyCode.E
+	prompt.RequiresLineOfSight   = false
+	prompt.Parent                = ancla
+
+	prompt.Triggered:Connect(function(player)
+		if not prompt.Enabled then return end
+		prompt.Enabled = false
+
+		local gemas = math.random(cfg.gemasMin, cfg.gemasMax)
+		GemasManager.agregar(player, gemas)
+
+		posicionesOcupadas[tostring(pos)] = nil
+
+		print(string.format("[Cofres] %s recogió %s: +%d gemas.", player.Name, cfg.nombre, gemas))
+
+		task.delay(0.4, function()
+			if modelo and modelo.Parent then
+				modelo:Destroy()
+			end
+		end)
+	end)
+end
+
+-- ============================================================
 -- Crear cofre en el mundo
 -- ============================================================
 local function crearCofre(tipo, pos)
 	local cfg = CofresConfig.TIPOS[tipo]
+
+	-- Cofres 3D: usar modelo de Toolbox si la plantilla está disponible
+	if tipo == "Madera" and plantillaCofreMadera then
+		crearCofre3D(plantillaCofreMadera, "Cofre_Madera", pos, cfg)
+		return
+	end
+	if tipo == "Piedra" and plantillaCofrePiedra then
+		crearCofre3D(plantillaCofrePiedra, "Cofre_Piedra", pos, cfg)
+		return
+	end
+	if tipo == "Dorado" and plantillaCofresDorado then
+		crearCofre3D(plantillaCofresDorado, "Cofre_Dorado", pos, cfg)
+		return
+	end
 
 	-- Modelo raíz
 	local cofreModel = Instance.new("Model")
