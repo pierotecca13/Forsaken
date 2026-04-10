@@ -48,7 +48,7 @@ screenGui.Parent        = playerGui
 local marco = Instance.new("Frame")
 marco.Name                   = "Marco"
 marco.AnchorPoint            = Vector2.new(0.5, 0.5)
-marco.Size                   = UDim2.new(0, 680, 0, 460)
+marco.Size                   = UDim2.new(0.88, 0, 0, 370)
 marco.Position               = UDim2.new(0.5, 0, 0.5, 0)
 marco.BackgroundColor3       = Color3.fromRGB(18, 12, 8)
 marco.BackgroundTransparency = 0.08
@@ -68,7 +68,7 @@ strokeMarco.Parent    = marco
 -- ── Encabezado ────────────────────────────────────────────────
 local header = Instance.new("Frame")
 header.Name                   = "Header"
-header.Size                   = UDim2.new(1, 0, 0, 36)
+header.Size                   = UDim2.new(1, 0, 0, 30)
 header.BackgroundColor3       = Color3.fromRGB(30, 20, 10)
 header.BackgroundTransparency = 0
 header.BorderSizePixel        = 0
@@ -113,15 +113,15 @@ cornerBtnX.Parent       = btnX
 -- ── Área de contenido ─────────────────────────────────────────
 local contenido = Instance.new("Frame")
 contenido.Name                   = "Contenido"
-contenido.Size                   = UDim2.new(1, 0, 1, -36)
-contenido.Position               = UDim2.new(0, 0, 0, 36)
+contenido.Size                   = UDim2.new(1, 0, 1, -30)
+contenido.Position               = UDim2.new(0, 0, 0, 30)
 contenido.BackgroundTransparency = 1
 contenido.Parent                 = marco
 
 -- ── Panel izquierdo: Inventario ───────────────────────────────
 local panelIzq = Instance.new("Frame")
 panelIzq.Name                   = "PanelInventario"
-panelIzq.Size                   = UDim2.new(0, 324, 1, -12)
+panelIzq.Size                   = UDim2.new(0.48, -15, 1, -12)
 panelIzq.Position               = UDim2.new(0, 10, 0, 6)
 panelIzq.BackgroundColor3       = Color3.fromRGB(14, 10, 6)
 panelIzq.BackgroundTransparency = 0.3
@@ -133,7 +133,7 @@ cornerIzq.CornerRadius = UDim.new(0, 8)
 cornerIzq.Parent       = panelIzq
 
 local tituloIzq = Instance.new("TextLabel")
-tituloIzq.Size               = UDim2.new(1, 0, 0, 26)
+tituloIzq.Size               = UDim2.new(1, 0, 0, 22)
 tituloIzq.BackgroundTransparency = 1
 tituloIzq.Text               = "INVENTARIO"
 tituloIzq.Font               = Enum.Font.GothamBold
@@ -144,8 +144,8 @@ tituloIzq.Parent             = panelIzq
 
 local scrollIzq = Instance.new("ScrollingFrame")
 scrollIzq.Name                   = "ScrollInv"
-scrollIzq.Size                   = UDim2.new(1, -8, 1, -30)
-scrollIzq.Position               = UDim2.new(0, 4, 0, 28)
+scrollIzq.Size                   = UDim2.new(1, -8, 1, -26)
+scrollIzq.Position               = UDim2.new(0, 4, 0, 24)
 scrollIzq.BackgroundTransparency = 1
 scrollIzq.BorderSizePixel        = 0
 scrollIzq.ScrollBarThickness     = 4
@@ -171,7 +171,7 @@ paddingIzq.Parent        = scrollIzq
 local divisor = Instance.new("Frame")
 divisor.Name             = "Divisor"
 divisor.Size             = UDim2.new(0, 2, 1, -12)
-divisor.Position         = UDim2.new(0, 340, 0, 6)
+divisor.Position         = UDim2.new(0.5, -1, 0, 6)
 divisor.BackgroundColor3 = Color3.fromRGB(100, 70, 30)
 divisor.BorderSizePixel  = 0
 divisor.Parent           = contenido
@@ -179,8 +179,8 @@ divisor.Parent           = contenido
 -- ── Panel derecho: Cofre ──────────────────────────────────────
 local panelDer = Instance.new("Frame")
 panelDer.Name                   = "PanelCofre"
-panelDer.Size                   = UDim2.new(0, 324, 1, -12)
-panelDer.Position               = UDim2.new(0, 346, 0, 6)
+panelDer.Size                   = UDim2.new(0.48, -15, 1, -12)
+panelDer.Position               = UDim2.new(0.5, 5, 0, 6)
 panelDer.BackgroundColor3       = Color3.fromRGB(12, 8, 4)
 panelDer.BackgroundTransparency = 0.3
 panelDer.BorderSizePixel        = 0
@@ -192,7 +192,7 @@ cornerDer.Parent       = panelDer
 
 local tituloDer = Instance.new("TextLabel")
 tituloDer.Name               = "Titulo"
-tituloDer.Size               = UDim2.new(1, 0, 0, 26)
+tituloDer.Size               = UDim2.new(1, 0, 0, 22)
 tituloDer.BackgroundTransparency = 1
 tituloDer.Text               = "COFRE  (0 / 5 slots)"
 tituloDer.Font               = Enum.Font.GothamBold
@@ -203,8 +203,8 @@ tituloDer.Parent             = panelDer
 
 local scrollDer = Instance.new("ScrollingFrame")
 scrollDer.Name                   = "ScrollCofre"
-scrollDer.Size                   = UDim2.new(1, -8, 1, -30)
-scrollDer.Position               = UDim2.new(0, 4, 0, 28)
+scrollDer.Size                   = UDim2.new(1, -8, 1, -26)
+scrollDer.Position               = UDim2.new(0, 4, 0, 24)
 scrollDer.BackgroundTransparency = 1
 scrollDer.BorderSizePixel        = 0
 scrollDer.ScrollBarThickness     = 4
@@ -228,7 +228,7 @@ paddingDer.Parent        = scrollDer
 
 -- ── Hint inferior ─────────────────────────────────────────────
 local lblHint = Instance.new("TextLabel")
-lblHint.Size               = UDim2.new(1, 0, 0, 16)
+lblHint.Size               = UDim2.new(1, 0, 0, 13)
 lblHint.AnchorPoint        = Vector2.new(0.5, 1)
 lblHint.Position           = UDim2.new(0.5, 0, 1, -4)
 lblHint.BackgroundTransparency = 1
@@ -244,7 +244,7 @@ lblHint.Parent             = marco
 -- ============================================================
 local function crearBotonItem(parent, nombre, cantidad, color, onClick)
 	local btn = Instance.new("TextButton")
-	btn.Size             = UDim2.new(1, 0, 0, 36)
+	btn.Size             = UDim2.new(1, 0, 0, 30)
 	btn.BackgroundColor3 = color
 	btn.AutoButtonColor  = false
 	btn.BorderSizePixel  = 0
@@ -283,7 +283,7 @@ end
 
 local function crearSlotVacio(parent, orden)
 	local slot = Instance.new("Frame")
-	slot.Size             = UDim2.new(1, 0, 0, 36)
+	slot.Size             = UDim2.new(1, 0, 0, 30)
 	slot.BackgroundColor3 = Color3.fromRGB(30, 20, 12)
 	slot.BackgroundTransparency = 0.5
 	slot.BorderSizePixel  = 0
@@ -342,7 +342,7 @@ local function poblarPanelInventario()
 		itemsMostrados += 1
 	end
 
-	scrollIzq.CanvasSize = UDim2.new(0, 0, 0, itemsMostrados * 39 + 6)
+	scrollIzq.CanvasSize = UDim2.new(0, 0, 0, itemsMostrados * 33 + 6)
 end
 
 local function poblarPanelCofre()
@@ -379,7 +379,7 @@ local function poblarPanelCofre()
 	end
 
 	tituloDer.Text       = string.format("COFRE  (%d / %d slots)", slotsUsados, slotsMaxLocal)
-	scrollDer.CanvasSize = UDim2.new(0, 0, 0, slotsMaxLocal * 39 + 6)
+	scrollDer.CanvasSize = UDim2.new(0, 0, 0, slotsMaxLocal * 33 + 6)
 end
 
 -- ============================================================

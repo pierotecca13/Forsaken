@@ -13,6 +13,7 @@ local SesionCofres     = require(script.Parent:WaitForChild("SesionCofres"))
 local SesionEnemigos   = require(script.Parent:WaitForChild("SesionEnemigos"))
 local SesionCampamento = require(script.Parent:WaitForChild("SesionCampamento"))
 local SesionCofreAlm   = require(script.Parent:WaitForChild("SesionCofreAlm"))
+local IluminacionMgr   = require(script.Parent:WaitForChild("IluminacionManager"))
 
 local M = {}
 
@@ -54,6 +55,10 @@ obtenerOCrear(carpetaEventos, "RemoteEvent", "AbrirCofreAlm")
 obtenerOCrear(carpetaEventos, "RemoteEvent", "MoverAlCofre")
 obtenerOCrear(carpetaEventos, "RemoteEvent", "MoverAlInventario")
 obtenerOCrear(carpetaEventos, "RemoteEvent", "CofreAlmActualizado")
+-- Eventos de iluminación portátil (antorchas/hogueras)
+obtenerOCrear(carpetaEventos, "RemoteEvent", "ReabastecerIluminacion")
+obtenerOCrear(carpetaEventos, "RemoteEvent", "ResultadoReabastecimiento")
+obtenerOCrear(carpetaEventos, "RemoteEvent", "FeedbackIluminacion")
 
 -- Inicializar sistema de cofre de almacenamiento
 SesionCofreAlm.inicializar()
@@ -84,6 +89,7 @@ local function limpiarSesion(id)
 	if s.carpetaRS and s.carpetaRS.Parent then
 		s.carpetaRS:Destroy()
 	end
+	IluminacionMgr.limpiarSesion(id)
 	sesiones[id] = nil
 	print(string.format("[SesionManager] Sesion %d limpiada.", id))
 end

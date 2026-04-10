@@ -13,11 +13,14 @@ local playerGui = player:WaitForChild("PlayerGui")
 
 -- Esperar eventos del servidor
 local carpetaEventos          = ReplicatedStorage:WaitForChild("Eventos")
-local evAbrirMenu             = carpetaEventos:WaitForChild("AbrirMenuCampamento")
-local evSolicitarMejora       = carpetaEventos:WaitForChild("SolicitarMejora")
-local evResultadoMejora       = carpetaEventos:WaitForChild("ResultadoMejora")
-local evCampamentoActualizado = carpetaEventos:WaitForChild("CampamentoActualizado")
-local evInventarioActualizado = carpetaEventos:WaitForChild("InventarioActualizado")
+local evAbrirMenu                 = carpetaEventos:WaitForChild("AbrirMenuCampamento")
+local evSolicitarMejora           = carpetaEventos:WaitForChild("SolicitarMejora")
+local evResultadoMejora           = carpetaEventos:WaitForChild("ResultadoMejora")
+local evCampamentoActualizado     = carpetaEventos:WaitForChild("CampamentoActualizado")
+local evInventarioActualizado     = carpetaEventos:WaitForChild("InventarioActualizado")
+local evReabastecerIluminacion    = carpetaEventos:WaitForChild("ReabastecerIluminacion")
+local evResultadoReabastecimiento = carpetaEventos:WaitForChild("ResultadoReabastecimiento")
+local evFeedbackIluminacion       = carpetaEventos:WaitForChild("FeedbackIluminacion")
 
 -- ============================================================
 -- Construir la UI
@@ -381,13 +384,70 @@ local cornerBtnMesa = Instance.new("UICorner")
 cornerBtnMesa.CornerRadius = UDim.new(0, 8)
 cornerBtnMesa.Parent       = btnMesa
 
+-- ── SECCIÓN: REABASTECER ILUMINACIÓN ─────────────────────────
+crearSeparador(17)
+crearLabel("ILUMINACION:", 18, Enum.Font.GothamMedium, Color3.fromRGB(155, 150, 175))
+
+local lblIlumConteo = Instance.new("TextLabel")
+lblIlumConteo.Size               = UDim2.new(1, 0, 0, 18)
+lblIlumConteo.BackgroundTransparency = 1
+lblIlumConteo.Text               = "Antorchas apagadas: 0  ·  Hogueras apagadas: 0"
+lblIlumConteo.Font               = Enum.Font.Gotham
+lblIlumConteo.TextScaled         = true
+lblIlumConteo.TextColor3         = Color3.fromRGB(155, 150, 130)
+lblIlumConteo.TextXAlignment     = Enum.TextXAlignment.Center
+lblIlumConteo.LayoutOrder        = 19
+lblIlumConteo.Parent             = scrollBody
+
+local lblIlumCosto = Instance.new("TextLabel")
+lblIlumCosto.Size               = UDim2.new(1, 0, 0, 16)
+lblIlumCosto.BackgroundTransparency = 1
+lblIlumCosto.Text               = "Costo: 0 Madera"
+lblIlumCosto.Font               = Enum.Font.Gotham
+lblIlumCosto.TextScaled         = true
+lblIlumCosto.TextColor3         = Color3.fromRGB(185, 140, 75)
+lblIlumCosto.TextXAlignment     = Enum.TextXAlignment.Center
+lblIlumCosto.LayoutOrder        = 20
+lblIlumCosto.Parent             = scrollBody
+
+local btnReabastecer = Instance.new("TextButton")
+btnReabastecer.Name             = "BtnReabastecer"
+btnReabastecer.Size             = UDim2.new(1, 0, 0, 40)
+btnReabastecer.BackgroundColor3 = Color3.fromRGB(45, 40, 20)
+btnReabastecer.Text             = "REABASTECER ILUMINACION"
+btnReabastecer.Font             = Enum.Font.GothamBold
+btnReabastecer.TextScaled       = true
+btnReabastecer.TextColor3       = Color3.fromRGB(255, 255, 255)
+btnReabastecer.AutoButtonColor  = false
+btnReabastecer.Active           = false
+btnReabastecer.LayoutOrder      = 21
+btnReabastecer.Parent           = scrollBody
+
+local cornerBtnReab = Instance.new("UICorner")
+cornerBtnReab.CornerRadius = UDim.new(0, 8)
+cornerBtnReab.Parent       = btnReabastecer
+
+local lblIlumMensaje = Instance.new("TextLabel")
+lblIlumMensaje.Size               = UDim2.new(1, 0, 0, 26)
+lblIlumMensaje.BackgroundTransparency = 1
+lblIlumMensaje.Text               = ""
+lblIlumMensaje.Font               = Enum.Font.GothamMedium
+lblIlumMensaje.TextScaled         = true
+lblIlumMensaje.TextColor3         = Color3.fromRGB(255, 75, 75)
+lblIlumMensaje.TextXAlignment     = Enum.TextXAlignment.Center
+lblIlumMensaje.TextWrapped        = true
+lblIlumMensaje.LayoutOrder        = 22
+lblIlumMensaje.Visible            = false
+lblIlumMensaje.Parent             = scrollBody
+
 -- ============================================================
 -- Estado local del menú y la mesa
 -- ============================================================
-local menuAbierto   = false
-local datosActuales = nil   -- tabla enviada por el servidor
-local mesaConstruida = false
-local COSTO_MESA     = { Madera = 2, Piedra = 2 }
+local menuAbierto      = false
+local datosActuales    = nil   -- tabla enviada por el servidor
+local mesaConstruida   = false
+local COSTO_MESA       = { Madera = 2, Piedra = 2 }
+local datosIluminacion = { antorchasApagadas = 0, hoguerasApagadas = 0, costoTotal = 0 }
 
 -- ============================================================
 -- Funciones de actualización
@@ -411,6 +471,24 @@ local function puedeCostearseTreboles(treboles)
 		end
 	end
 	return true
+end
+
+-- Actualiza la sección de iluminación con los datos recibidos del servidor
+local function actualizarSeccionIluminacion(ilum)
+	datosIluminacion = ilum or datosIluminacion
+	local ant  = datosIluminacion.antorchasApagadas or 0
+	local hog  = datosIluminacion.hoguerasApagadas  or 0
+	local cost = datosIluminacion.costoTotal        or 0
+
+	lblIlumConteo.Text = string.format("Antorchas apagadas: %d  ·  Hogueras apagadas: %d", ant, hog)
+	lblIlumCosto.Text  = string.format("Costo: %d Madera", cost)
+
+	local hayApagadas = (ant + hog) > 0
+	btnReabastecer.Active           = hayApagadas
+	btnReabastecer.BackgroundColor3 = hayApagadas
+		and Color3.fromRGB(115, 90, 25)
+		or  Color3.fromRGB(45, 40, 20)
+	lblIlumMensaje.Visible = false
 end
 
 local function actualizarBtnMesa(inventario)
@@ -580,6 +658,11 @@ local function abrirMenu(datos)
 	mesaConstruida = workspace:FindFirstChild("MesaTrabajo") ~= nil
 	actualizarBtnMesa(datos.inventario)
 
+	-- Sección de iluminación
+	if datos.iluminacion then
+		actualizarSeccionIluminacion(datos.iluminacion)
+	end
+
 	marco.Visible = true
 end
 
@@ -731,6 +814,67 @@ task.spawn(function()
 		btnMejorar.BackgroundColor3 = puede
 			and Color3.fromRGB(35, 130, 55)
 			or  Color3.fromRGB(90, 45, 45)
+	end)
+end)
+
+-- Click en "Reabastecer iluminación"
+btnReabastecer.MouseButton1Click:Connect(function()
+	if not menuAbierto or not btnReabastecer.Active then return end
+	btnReabastecer.Active = false
+	evReabastecerIluminacion:FireServer()
+	lblIlumMensaje.Text       = "Reabasteciendo..."
+	lblIlumMensaje.TextColor3 = Color3.fromRGB(200, 200, 200)
+	lblIlumMensaje.Visible    = true
+end)
+
+-- Resultado del reabastecimiento
+evResultadoReabastecimiento.OnClientEvent:Connect(function(resultado)
+	btnReabastecer.Active     = true
+	lblIlumMensaje.Text       = resultado.mensaje or ""
+	lblIlumMensaje.TextColor3 = resultado.exito
+		and Color3.fromRGB(90, 220, 90)
+		or  Color3.fromRGB(255, 70, 70)
+	lblIlumMensaje.Visible = true
+	-- Si fue exitoso, la iluminación quedó toda encendida
+	if resultado.exito then
+		actualizarSeccionIluminacion({ antorchasApagadas = 0, hoguerasApagadas = 0, costoTotal = 0 })
+	end
+end)
+
+-- Feedback de ProximityPrompt individual (Madera insuficiente al presionar E)
+evFeedbackIluminacion.OnClientEvent:Connect(function(mensaje)
+	-- Notificación flotante temporal (mismo patrón que CampamentoActualizado)
+	local notifGui = Instance.new("ScreenGui")
+	notifGui.Name         = "IlumFeedback"
+	notifGui.ResetOnSpawn = false
+	notifGui.Parent       = playerGui
+
+	local notifFrame = Instance.new("Frame")
+	notifFrame.Size               = UDim2.new(0, 280, 0, 44)
+	notifFrame.AnchorPoint        = Vector2.new(0.5, 0)
+	notifFrame.Position           = UDim2.new(0.5, 0, 0, 72)
+	notifFrame.BackgroundColor3   = Color3.fromRGB(100, 30, 30)
+	notifFrame.BackgroundTransparency = 0.12
+	notifFrame.BorderSizePixel    = 0
+	notifFrame.Parent             = notifGui
+
+	local cornerNotifIlum = Instance.new("UICorner")
+	cornerNotifIlum.CornerRadius = UDim.new(0, 10)
+	cornerNotifIlum.Parent = notifFrame
+
+	local lblNotifIlum = Instance.new("TextLabel")
+	lblNotifIlum.Size               = UDim2.new(1, 0, 1, 0)
+	lblNotifIlum.BackgroundTransparency = 1
+	lblNotifIlum.Text               = mensaje or ""
+	lblNotifIlum.Font               = Enum.Font.GothamBold
+	lblNotifIlum.TextScaled         = true
+	lblNotifIlum.TextColor3         = Color3.fromRGB(255, 120, 120)
+	lblNotifIlum.Parent             = notifFrame
+
+	task.delay(2, function()
+		TweenService:Create(notifFrame, TweenInfo.new(0.8), { BackgroundTransparency = 1 }):Play()
+		TweenService:Create(lblNotifIlum, TweenInfo.new(0.8), { TextTransparency = 1 }):Play()
+		task.delay(0.8, function() notifGui:Destroy() end)
 	end)
 end)
 

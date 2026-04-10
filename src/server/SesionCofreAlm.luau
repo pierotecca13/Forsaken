@@ -302,4 +302,35 @@ function M.limpiarJugador(player)
 	player:SetAttribute("CofreAlmConstruido", nil)
 end
 
+-- ============================================================
+-- API pública: leer/descontar Madera del cofre (para IluminacionManager)
+-- ============================================================
+
+-- Devuelve la cantidad de Madera en el cofre del jugador, o 0 si no tiene cofre.
+function M.obtenerMaderaCofre(player)
+	local data = cofresAlm[player]
+	if not data then return 0 end
+	return data.cofre.Madera or 0
+end
+
+-- Descuenta 'cantidad' de Madera del cofre del jugador.
+-- Devuelve true si tuvo éxito, false si no tiene cofre o no hay suficiente.
+-- Notifica al cliente con CofreAlmActualizado para que su UI se actualice.
+function M.descontarMaderaCofre(player, cantidad)
+	local data = cofresAlm[player]
+	if not data then return false end
+	local actual = data.cofre.Madera or 0
+	if actual < cantidad then return false end
+	data.cofre.Madera = actual - cantidad
+	local carpetaEventos = ReplicatedStorage:FindFirstChild("Eventos")
+	local evCofreActualizado = carpetaEventos and carpetaEventos:FindFirstChild("CofreAlmActualizado")
+	if evCofreActualizado then
+		evCofreActualizado:FireClient(player, {
+			cofre    = data.cofre,
+			slotsMax = calcularSlotsMax(player),
+		})
+	end
+	return true
+end
+
 return M

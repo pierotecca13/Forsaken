@@ -10,6 +10,8 @@ local InventarioManager = require(script.Parent:WaitForChild("InventarioManager"
 local TrebolManager     = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrebolManager"))
 local TrebolConfig      = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrebolConfig"))
 local Config            = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("CampamentoConfig"))
+local IluminacionMgr    = require(script.Parent:WaitForChild("IluminacionManager"))
+local SesionCofreAlm    = require(script.Parent:WaitForChild("SesionCofreAlm"))
 
 local M = {}
 
@@ -39,11 +41,13 @@ end
 -- Función principal
 -- ============================================================
 function M.crear(sesionId, offsetX, carpetaSesion, nivelCampamento)
-	local carpetaEventos          = obtenerOCrear(ReplicatedStorage, "Folder", "Eventos")
-	local evAbrirMenu             = obtenerOCrear(carpetaEventos, "RemoteEvent", "AbrirMenuCampamento")
-	local evSolicitarMejora       = obtenerOCrear(carpetaEventos, "RemoteEvent", "SolicitarMejora")
-	local evResultadoMejora       = obtenerOCrear(carpetaEventos, "RemoteEvent", "ResultadoMejora")
-	local evCampamentoActualizado = obtenerOCrear(carpetaEventos, "RemoteEvent", "CampamentoActualizado")
+	local carpetaEventos              = obtenerOCrear(ReplicatedStorage, "Folder", "Eventos")
+	local evAbrirMenu                 = obtenerOCrear(carpetaEventos, "RemoteEvent", "AbrirMenuCampamento")
+	local evSolicitarMejora           = obtenerOCrear(carpetaEventos, "RemoteEvent", "SolicitarMejora")
+	local evResultadoMejora           = obtenerOCrear(carpetaEventos, "RemoteEvent", "ResultadoMejora")
+	local evCampamentoActualizado     = obtenerOCrear(carpetaEventos, "RemoteEvent", "CampamentoActualizado")
+	local evReabastecerIluminacion    = obtenerOCrear(carpetaEventos, "RemoteEvent", "ReabastecerIluminacion")
+	local evResultadoReabastecimiento = obtenerOCrear(carpetaEventos, "RemoteEvent", "ResultadoReabastecimiento")
 
 	-- Posición del campamento para esta sesión
 	local campPos = Vector3.new(offsetX + 0, 0, -20)
@@ -128,10 +132,12 @@ function M.crear(sesionId, offsetX, carpetaSesion, nivelCampamento)
 		end
 	end)
 
-	-- Abrir menú
+	-- Abrir menú (incluye datos de iluminación para la sección "Reabastecer")
 	prompt.Triggered:Connect(function(player)
 		-- Solo jugadores de esta sesión pueden interactuar
 		if player:GetAttribute("SesionActual") ~= sesionId then return end
+		local conteo    = IluminacionMgr.contarApagados(sesionId)
+		local costoIlum = IluminacionMgr.costoCombinado(sesionId)
 		evAbrirMenu:FireClient(player, {
 			nivel        = nivelCampamento.Value,
 			nivelMaximo  = Config.NIVEL_MAXIMO,
@@ -139,6 +145,11 @@ function M.crear(sesionId, offsetX, carpetaSesion, nivelCampamento)
 			costos       = Config.COSTOS,
 			nombresRec   = Config.NOMBRES,
 			ordenDisplay = Config.ORDEN_DISPLAY,
+			iluminacion  = {
+				antorchasApagadas = conteo.antorchas,
+				hoguerasApagadas  = conteo.hogueras,
+				costoTotal        = costoIlum,
+			},
 		})
 	end)
 
@@ -201,6 +212,59 @@ function M.crear(sesionId, offsetX, carpetaSesion, nivelCampamento)
 
 		print(string.format("[SesionCampamento] Sesion %d: %s mejoro a Nv.%d - %s.",
 			sesionId, player.Name, nuevoNivel, zona))
+	end)
+
+	-- ── Reabastecer iluminación desde campamento ──────────────────
+	evReabastecerIluminacion.OnServerEvent:Connect(function(player)
+		-- Ignorar si el jugador no pertenece a esta sesión
+		if player:GetAttribute("SesionActual") ~= sesionId then return end
+
+		local costoTotal = IluminacionMgr.costoCombinado(sesionId)
+
+		-- No hay nada apagado
+		if costoTotal == 0 then
+			evResultadoReabastecimiento:FireClient(player, {
+				exito   = true,
+				mensaje = "No hay iluminacion apagada.",
+			})
+			return
+		end
+
+		-- Comprobar si tiene suficiente Madera entre inventario y cofre
+		local inv         = InventarioManager.obtener(player)
+		local maderaInv   = inv.Madera or 0
+		local maderaCofre = SesionCofreAlm.obtenerMaderaCofre(player)
+		local maderaTotal = maderaInv + maderaCofre
+
+		if maderaTotal < costoTotal then
+			evResultadoReabastecimiento:FireClient(player, {
+				exito   = false,
+				mensaje = string.format("Madera insuficiente, te faltan %d unidades.", costoTotal - maderaTotal),
+			})
+			return
+		end
+
+		-- Descontar: primero del inventario, luego del cofre si hace falta
+		local desdeInv   = math.min(maderaInv, costoTotal)
+		local desdeCofre = costoTotal - desdeInv
+		InventarioManager.descontar(player, { Madera = desdeInv })
+		if desdeCofre > 0 then
+			SesionCofreAlm.descontarMaderaCofre(player, desdeCofre)
+		end
+
+		-- Guardar conteo antes de reencender para el mensaje de confirmación
+		local conteo      = IluminacionMgr.contarApagados(sesionId)
+		local carpetaHogs = carpetaSesion:FindFirstChild("HoguerasActivas")
+		IluminacionMgr.reencenderTodos(sesionId, carpetaHogs)
+
+		evResultadoReabastecimiento:FireClient(player, {
+			exito   = true,
+			mensaje = string.format("Iluminacion reabastecida (%d antorchas + %d hogueras).",
+				conteo.antorchas, conteo.hogueras),
+		})
+
+		print(string.format("[SesionCampamento] Sesion %d: %s reabastecio iluminacion (%d madera).",
+			sesionId, player.Name, costoTotal))
 	end)
 
 	print(string.format("[SesionCampamento] Sesion %d: campamento creado en X=%d.", sesionId, offsetX))

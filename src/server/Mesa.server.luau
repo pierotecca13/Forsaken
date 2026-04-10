@@ -10,8 +10,9 @@
 local Players           = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local MesaConfig    = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MesaConfig"))
-local InventarioMgr = require(script.Parent:FindFirstChild("InventarioManager"))
+local MesaConfig     = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MesaConfig"))
+local InventarioMgr  = require(script.Parent:FindFirstChild("InventarioManager"))
+local IluminacionMgr = require(script.Parent:FindFirstChild("IluminacionManager"))
 
 -- ============================================================
 -- Eventos
@@ -33,11 +34,6 @@ local evAbrirMesa             = obtenerOCrear(carpetaEventos, "RemoteEvent", "Ab
 local evSolicitarCrafteo      = obtenerOCrear(carpetaEventos, "RemoteEvent", "SolicitarCrafteo")
 local evResultadoCrafteo      = obtenerOCrear(carpetaEventos, "RemoteEvent", "ResultadoCrafteo")
 local evColocarItem           = obtenerOCrear(carpetaEventos, "RemoteEvent", "ColocarItem")
-
--- ============================================================
--- Carpeta de hogueras activas (leída por Enemigos.server)
--- ============================================================
-local carpetaHogueras = obtenerOCrear(workspace, "Folder", "HoguerasActivas")
 
 -- ============================================================
 -- Estado por sesión (clave = sesionId)
@@ -115,12 +111,19 @@ end
 -- ============================================================
 -- Crear Antorcha en el mundo
 -- ============================================================
-local function crearAntorcha(posicion)
+local function crearAntorcha(posicion, sesionId, carpetaHoguerasActivas)
 	local receta = MesaConfig.RECETAS.Antorcha
+
+	-- Determinar la carpeta de sesión para anidar el objeto correctamente
+	local carpetaSesion = nil
+	if sesionId then
+		local sesFolder = workspace:FindFirstChild("Sesiones")
+		carpetaSesion   = sesFolder and sesFolder:FindFirstChild("Sesion_" .. tostring(sesionId))
+	end
 
 	local carpetaAnt = Instance.new("Folder")
 	carpetaAnt.Name   = "Antorcha_Mundo"
-	carpetaAnt.Parent = workspace
+	carpetaAnt.Parent = carpetaSesion or workspace
 
 	-- Palo
 	local palo = Instance.new("Part")
@@ -161,34 +164,28 @@ local function crearAntorcha(posicion)
 	marcadorAnt.Transparency = 1
 	marcadorAnt.CFrame      = CFrame.new(posicion)
 	marcadorAnt:SetAttribute("Radio", receta.radioRepulsion)
-	marcadorAnt.Parent      = carpetaHogueras
+	marcadorAnt.Parent      = carpetaHoguerasActivas
 
-	-- Auto-apagar tras la duración configurada
-	task.delay(receta.duracion, function()
-		-- Apagado gradual
-		for i = 1, 6 do
-			task.wait(0.1)
-			if llama and llama.Parent then
-				llama.Transparency = i / 6
-				luz.Brightness     = receta.brilloLuz * (1 - i / 6)
-			end
-		end
-		if marcadorAnt and marcadorAnt.Parent then marcadorAnt:Destroy() end
-		if carpetaAnt and carpetaAnt.Parent then
-			carpetaAnt:Destroy()
-		end
-	end)
+	-- Registrar en IluminacionManager (él gestiona el timer y los estados)
+	IluminacionMgr.registrar(sesionId, "Antorcha", carpetaAnt, llama, luz, palo, marcadorAnt, posicion, receta)
 end
 
 -- ============================================================
 -- Crear Hoguera Portátil en el mundo
 -- ============================================================
-local function crearHoguera(posicion)
+local function crearHoguera(posicion, sesionId, carpetaHoguerasActivas)
 	local receta = MesaConfig.RECETAS.Hoguera
+
+	-- Determinar la carpeta de sesión para anidar el objeto correctamente
+	local carpetaSesion = nil
+	if sesionId then
+		local sesFolder = workspace:FindFirstChild("Sesiones")
+		carpetaSesion   = sesFolder and sesFolder:FindFirstChild("Sesion_" .. tostring(sesionId))
+	end
 
 	local carpetaHog = Instance.new("Folder")
 	carpetaHog.Name   = "Hoguera_Mundo"
-	carpetaHog.Parent = workspace
+	carpetaHog.Parent = carpetaSesion or workspace
 
 	-- Base de piedras (base)
 	local base = Instance.new("Part")
@@ -229,20 +226,10 @@ local function crearHoguera(posicion)
 	marcador.Transparency = 1
 	marcador.CFrame      = CFrame.new(posicion)
 	marcador:SetAttribute("Radio", receta.radioRepulsion)
-	marcador.Parent      = carpetaHogueras
+	marcador.Parent      = carpetaHoguerasActivas
 
-	-- Auto-apagar tras la duración configurada
-	task.delay(receta.duracion, function()
-		for i = 1, 6 do
-			task.wait(0.15)
-			if fuego and fuego.Parent then
-				fuego.Transparency = i / 6
-				luz.Brightness     = receta.brilloLuz * (1 - i / 6)
-			end
-		end
-		if marcador and marcador.Parent then marcador:Destroy() end
-		if carpetaHog and carpetaHog.Parent then carpetaHog:Destroy() end
-	end)
+	-- Registrar en IluminacionManager (él gestiona el timer y los estados)
+	IluminacionMgr.registrar(sesionId, "Hoguera", carpetaHog, fuego, luz, base, marcador, posicion, receta)
 end
 
 -- ============================================================
@@ -363,14 +350,20 @@ evColocarItem.OnServerEvent:Connect(function(player, tipo)
 	-- Descontar 1 unidad del inventario
 	InventarioMgr.descontar(player, { [tipo] = 1 })
 
+	-- Obtener sesión y carpeta de HoguerasActivas correcta
+	local sesionId   = player:GetAttribute("SesionActual")
+	local sesFolder  = workspace:FindFirstChild("Sesiones")
+	local carpetaSes = sesFolder and sesFolder:FindFirstChild("Sesion_" .. tostring(sesionId))
+	local carpetaHog = carpetaSes and carpetaSes:FindFirstChild("HoguerasActivas")
+
 	-- Obtener posición de colocación
 	local pos = posicionColocacion(player)
 
 	-- Crear el objeto en el mundo
 	if tipo == "Antorcha" then
-		crearAntorcha(pos)
+		crearAntorcha(pos, sesionId, carpetaHog)
 	elseif tipo == "Hoguera" then
-		crearHoguera(pos)
+		crearHoguera(pos, sesionId, carpetaHog)
 	end
 
 	print(string.format("[Mesa] %s colocó %s en el mundo.", player.Name, tipo))
