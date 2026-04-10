@@ -237,4 +237,49 @@ evGemas.OnClientEvent:Connect(function(cantidad)
 	gemLabel.Text = "◆ " .. cantidad
 end)
 
+-- ============================================================
+-- Pantalla de carga de sesión (visible mientras se genera el mundo)
+-- ============================================================
+local loadingGui = Instance.new("ScreenGui")
+loadingGui.Name            = "LoadingScreen"
+loadingGui.ResetOnSpawn    = false
+loadingGui.DisplayOrder    = 100  -- por encima de todas las demás UIs
+loadingGui.IgnoreGuiInset  = true -- cubre toda la pantalla, incluyendo el área del top bar
+loadingGui.Enabled         = false
+loadingGui.Parent          = playerGui
+
+local loadingFondo = Instance.new("Frame")
+loadingFondo.Size                   = UDim2.new(1, 0, 1, 0)
+loadingFondo.BackgroundColor3       = Color3.fromRGB(5, 5, 10)
+loadingFondo.BackgroundTransparency = 0
+loadingFondo.BorderSizePixel        = 0
+loadingFondo.Parent                 = loadingGui
+
+local loadingLabel = Instance.new("TextLabel")
+loadingLabel.Size                   = UDim2.new(0, 440, 0, 60)
+loadingLabel.Position               = UDim2.new(0.5, -220, 0.5, -30)
+loadingLabel.BackgroundTransparency = 1
+loadingLabel.Text                   = "Generando mundo..."
+loadingLabel.TextColor3             = Color3.fromRGB(220, 200, 140)
+loadingLabel.TextScaled             = true
+loadingLabel.Font                   = Enum.Font.GothamBold
+loadingLabel.TextStrokeTransparency = 0.4
+loadingLabel.TextStrokeColor3       = Color3.fromRGB(0, 0, 0)
+loadingLabel.Parent                 = loadingFondo
+
+local evSesionPreparando = carpetaEventos:WaitForChild("SesionPreparando", 30)
+local evSesionLista      = carpetaEventos:WaitForChild("SesionLista", 30)
+
+if evSesionPreparando then
+	evSesionPreparando.OnClientEvent:Connect(function()
+		loadingGui.Enabled = true
+	end)
+end
+
+if evSesionLista then
+	evSesionLista.OnClientEvent:Connect(function()
+		loadingGui.Enabled = false
+	end)
+end
+
 print("[LobbyUI] Interfaz del lobby lista.")

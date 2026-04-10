@@ -19,6 +19,7 @@ local evInventarioLleno       = carpetaEventos:WaitForChild("InventarioLleno")
 local evCampamentoActualizado = carpetaEventos:WaitForChild("CampamentoActualizado")
 local evDescartar             = carpetaEventos:WaitForChild("InventarioDescartar")
 local evColocar               = carpetaEventos:WaitForChild("ColocarHerramienta")
+local evVendajeActualizado    = carpetaEventos:WaitForChild("VendajeActualizado")
 
 -- ============================================================
 -- Panel principal (esquina inferior izquierda)
@@ -84,14 +85,91 @@ separador.BorderSizePixel  = 0
 separador.LayoutOrder      = 1
 separador.Parent           = marco
 
+-- ── Fila especial de Vendaje (fuera de slots normales) ──────────
+local filaVendaje = Instance.new("Frame")
+filaVendaje.Name                   = "FilaVendaje"
+filaVendaje.Size                   = UDim2.new(1, 0, 0, 14)
+filaVendaje.BackgroundTransparency = 1
+filaVendaje.LayoutOrder            = 2
+filaVendaje.Parent                 = marco
+
+local lblVendaje = Instance.new("TextLabel")
+lblVendaje.Size               = UDim2.new(1, 0, 1, 0)
+lblVendaje.BackgroundTransparency = 1
+lblVendaje.Text               = "🩹 Vendaje  0 / 2"
+lblVendaje.TextScaled         = true
+lblVendaje.Font               = Enum.Font.Gotham
+lblVendaje.TextColor3         = Color3.fromRGB(200, 180, 220)
+lblVendaje.TextXAlignment     = Enum.TextXAlignment.Left
+lblVendaje.Parent             = filaVendaje
+
+-- Notificación flotante cuando se recibe un vendaje
+local function mostrarNotificacionVendaje()
+	local notif = Instance.new("Frame")
+	notif.Size             = UDim2.new(0, 210, 0, 38)
+	notif.AnchorPoint      = Vector2.new(0.5, 0)
+	notif.Position         = UDim2.new(0.5, 0, 0, 68)
+	notif.BackgroundColor3 = Color3.fromRGB(240, 235, 255)
+	notif.BackgroundTransparency = 1
+	notif.BorderSizePixel  = 0
+	notif.ZIndex           = 10
+	notif.Parent           = screenGui
+
+	local notifCorner = Instance.new("UICorner")
+	notifCorner.CornerRadius = UDim.new(0, 8)
+	notifCorner.Parent = notif
+
+	local notifLbl = Instance.new("TextLabel")
+	notifLbl.Size               = UDim2.new(1, -14, 1, 0)
+	notifLbl.Position           = UDim2.new(0, 7, 0, 0)
+	notifLbl.BackgroundTransparency = 1
+	notifLbl.Text               = "🩹  ¡Vendaje recibido!"
+	notifLbl.Font               = Enum.Font.GothamBold
+	notifLbl.TextScaled         = true
+	notifLbl.TextColor3         = Color3.fromRGB(90, 50, 160)
+	notifLbl.TextXAlignment     = Enum.TextXAlignment.Left
+	notifLbl.TextTransparency   = 1
+	notifLbl.ZIndex             = 11
+	notifLbl.Parent             = notif
+
+	-- Fade in
+	TweenService:Create(notif,    TweenInfo.new(0.3), { BackgroundTransparency = 0.08 }):Play()
+	TweenService:Create(notifLbl, TweenInfo.new(0.3), { TextTransparency = 0 }):Play()
+
+	-- Fade out tras 2.5 s
+	task.delay(2.5, function()
+		TweenService:Create(notif,    TweenInfo.new(0.5), { BackgroundTransparency = 1 }):Play()
+		TweenService:Create(notifLbl, TweenInfo.new(0.5), { TextTransparency = 1 }):Play()
+		task.delay(0.55, function() notif:Destroy() end)
+	end)
+end
+
+-- Actualizar fila de vendaje cuando el servidor notifica un cambio
+local vendajesUI = 0
+evVendajeActualizado.OnClientEvent:Connect(function(cantidad)
+	lblVendaje.Text = "🩹 Vendaje  " .. cantidad .. " / 2"
+	if cantidad > vendajesUI then
+		mostrarNotificacionVendaje()
+	end
+	vendajesUI = cantidad
+end)
+
+-- Valor inicial desde el atributo del jugador (ya establecido por el servidor)
+do
+	local Players = game:GetService("Players")
+	local inicial = Players.LocalPlayer:GetAttribute("Vendajes") or 0
+	lblVendaje.Text = "🩹 Vendaje  " .. inicial .. " / 2"
+	vendajesUI = inicial
+end
+
 -- ── Fila de mochila: etiqueta + barra visual + fracción ─────────
 -- La barra comunica visualmente "qué tan llena está la mochila"
 -- sin necesitar entender la math de stacks/slots.
 local filaMochila = Instance.new("Frame")
 filaMochila.Name                   = "FilaMochila"
-filaMochila.Size                   = UDim2.new(1, 0, 0, 24)
+filaMochila.Size                   = UDim2.new(1, 0, 0, 18)
 filaMochila.BackgroundTransparency = 1
-filaMochila.LayoutOrder            = 2
+filaMochila.LayoutOrder            = 3
 filaMochila.Parent                 = marco
 
 -- Etiqueta "Mochila"
@@ -150,12 +228,12 @@ local sepScrollHeader = Instance.new("Frame")
 sepScrollHeader.Size             = UDim2.new(1, 0, 0, 1)
 sepScrollHeader.BackgroundColor3 = Color3.fromRGB(50, 50, 80)
 sepScrollHeader.BorderSizePixel  = 0
-sepScrollHeader.LayoutOrder      = 3
+sepScrollHeader.LayoutOrder      = 4   -- desplazado para dejar espacio a filaMochila (3)
 sepScrollHeader.Parent           = marco
 
 local scrollRecursos = Instance.new("ScrollingFrame")
 scrollRecursos.Name                   = "ScrollRecursos"
-scrollRecursos.Size                   = UDim2.new(1, 0, 0, 122)
+scrollRecursos.Size                   = UDim2.new(1, 0, 0, 110)
 scrollRecursos.BackgroundTransparency = 1
 scrollRecursos.BorderSizePixel        = 0
 scrollRecursos.ScrollBarThickness     = 3
@@ -163,7 +241,7 @@ scrollRecursos.ScrollBarImageColor3   = Color3.fromRGB(90, 90, 130)
 scrollRecursos.AutomaticCanvasSize    = Enum.AutomaticSize.Y
 scrollRecursos.CanvasSize             = UDim2.new(0, 0, 0, 0)
 scrollRecursos.ScrollingDirection     = Enum.ScrollingDirection.Y
-scrollRecursos.LayoutOrder            = 4
+scrollRecursos.LayoutOrder            = 5   -- desplazado tras sepScrollHeader
 scrollRecursos.Parent                 = marco
 
 local layoutScroll = Instance.new("UIListLayout")
@@ -219,7 +297,7 @@ for i, nombreRecurso in ipairs(Config.ORDEN_INVENTARIO) do
 
 		local sepC = Instance.new("TextLabel")
 		sepC.Name                  = "SeparadorComida"
-		sepC.Size                  = UDim2.new(1, 0, 0, 14)
+		sepC.Size                  = UDim2.new(1, 0, 0, 11)
 		sepC.BackgroundTransparency = 1
 		sepC.Text                  = "─  COMIDA  ─"
 		sepC.TextScaled            = true
@@ -238,7 +316,7 @@ for i, nombreRecurso in ipairs(Config.ORDEN_INVENTARIO) do
 
 		local sepH = Instance.new("TextLabel")
 		sepH.Name                  = "SeparadorHerramientas"
-		sepH.Size                  = UDim2.new(1, 0, 0, 14)
+		sepH.Size                  = UDim2.new(1, 0, 0, 11)
 		sepH.BackgroundTransparency = 1
 		sepH.Text                  = "─  HERRAMIENTAS  ─"
 		sepH.TextScaled            = true
@@ -265,7 +343,7 @@ for i, nombreRecurso in ipairs(Config.ORDEN_INVENTARIO) do
 
 	local fila = Instance.new("Frame")
 	fila.Name                   = "Fila_" .. nombreRecurso
-	fila.Size                   = UDim2.new(1, 0, 0, 22)
+	fila.Size                   = UDim2.new(1, 0, 0, 18)
 	fila.BackgroundTransparency = 1
 	fila.LayoutOrder            = orden
 	fila.Parent                 = scrollRecursos

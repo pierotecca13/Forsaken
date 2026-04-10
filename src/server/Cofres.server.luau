@@ -1,3 +1,7 @@
+-- [SESIONES] Este script fue reemplazado por el sistema de sesiones por grupo.
+-- SesionManager.luau orquesta la creación de mundos por sesión.
+do return end
+
 -- Cofres.server.luau
 -- Genera cofres en el mundo con timers y recompensas de gemas.
 -- Tipos: Madera (1-2 gemas, 5 max, cada 6min)
@@ -10,6 +14,10 @@ local ServerStorage     = game:GetService("ServerStorage")
 
 local GemasManager  = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("GemasManager"))
 local CofresConfig  = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("CofresConfig"))
+
+-- Evento para notificar al cliente cuántos vendajes tiene
+local carpetaEventos      = ReplicatedStorage:WaitForChild("Eventos")
+local evVendajeActualizado = carpetaEventos:WaitForChild("VendajeActualizado")
 
 -- Plantilla del cofre de madera 3D (modelo "CofreMadera" de Culmbzy en ServerStorage)
 local plantillaCofreMadera  = ServerStorage:FindFirstChild("CofreMadera")
@@ -60,6 +68,27 @@ local function posicionLibre()
 	end
 	if #disponibles == 0 then return nil end
 	return disponibles[math.random(#disponibles)]
+end
+
+-- ============================================================
+-- Recompensa del cofre: vendaje (si hay suerte y cupo) o gemas
+-- ============================================================
+local function darRecompensa(player, cfg)
+	local chance = cfg.chanceVendaje or 0
+	local vendajesActuales = player:GetAttribute("Vendajes") or 0
+
+	if chance > 0 and vendajesActuales < 2 and math.random() < chance then
+		-- Da un vendaje en lugar de gemas
+		local nuevo = vendajesActuales + 1
+		player:SetAttribute("Vendajes", nuevo)
+		evVendajeActualizado:FireClient(player, nuevo)
+		print(string.format("[Cofres] %s recibió un Vendaje (%d/2).", player.Name, nuevo))
+	else
+		-- Da gemas normalmente
+		local gemas = math.random(cfg.gemasMin, cfg.gemasMax)
+		GemasManager.agregar(player, gemas)
+		print(string.format("[Cofres] %s recogió %s: +%d gemas.", player.Name, cfg.nombre, gemas))
+	end
 end
 
 -- ============================================================
@@ -126,12 +155,9 @@ local function crearCofre3D(plantilla, nombre, pos, cfg)
 		if not prompt.Enabled then return end
 		prompt.Enabled = false
 
-		local gemas = math.random(cfg.gemasMin, cfg.gemasMax)
-		GemasManager.agregar(player, gemas)
+		darRecompensa(player, cfg)
 
 		posicionesOcupadas[tostring(pos)] = nil
-
-		print(string.format("[Cofres] %s recogió %s: +%d gemas.", player.Name, cfg.nombre, gemas))
 
 		task.delay(0.4, function()
 			if modelo and modelo.Parent then
@@ -221,13 +247,10 @@ local function crearCofre(tipo, pos)
 		if not prompt.Enabled then return end
 		prompt.Enabled = false
 
-		local gemas = math.random(cfg.gemasMin, cfg.gemasMax)
-		GemasManager.agregar(player, gemas)
+		darRecompensa(player, cfg)
 
 		-- Liberar la posición para futuros spawns
 		posicionesOcupadas[tostring(pos)] = nil
-
-		print(string.format("[Cofres] %s recogió %s: +%d gemas.", player.Name, cfg.nombre, gemas))
 
 		task.delay(0.4, function()
 			if cofreModel and cofreModel.Parent then

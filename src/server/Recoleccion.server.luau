@@ -1,3 +1,7 @@
+-- [SESIONES] Este script fue reemplazado por el sistema de sesiones por grupo.
+-- SesionManager.luau orquesta la creación de mundos por sesión.
+do return end
+
 -- Recoleccion.server.luau
 -- Sistema de recolección de recursos del Bosque.
 -- Crea los objetos en el mapa, gestiona ProximityPrompt,

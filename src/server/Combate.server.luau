@@ -6,8 +6,9 @@
 local Players           = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Config        = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ArmasConfig"))
-local GemasManager  = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("GemasManager"))
+local Config          = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ArmasConfig"))
+local GemasManager    = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("GemasManager"))
+local SesionManager   = require(script.Parent:WaitForChild("SesionManager"))
 
 -- Desactivar el respawn automático para todos los jugadores;
 -- el spawn se controla manualmente con player:LoadCharacter()
@@ -32,10 +33,12 @@ local function obtenerOCrear(parent, className, nombre)
 	return obj
 end
 
-local carpetaEventos  = obtenerOCrear(ReplicatedStorage, "Folder", "Eventos")
-local evAtacarMelee   = obtenerOCrear(carpetaEventos, "RemoteEvent", "AtacarMelee")
-local evReintentar    = obtenerOCrear(carpetaEventos, "RemoteEvent", "Reintentar")
-local evRevivireAqui  = obtenerOCrear(carpetaEventos, "RemoteEvent", "RevivireAqui")
+local carpetaEventos      = obtenerOCrear(ReplicatedStorage, "Folder", "Eventos")
+local evAtacarMelee       = obtenerOCrear(carpetaEventos, "RemoteEvent", "AtacarMelee")
+local evReintentar        = obtenerOCrear(carpetaEventos, "RemoteEvent", "Reintentar")
+local evRevivireAqui      = obtenerOCrear(carpetaEventos, "RemoteEvent", "RevivireAqui")
+local evUsarVendaje       = obtenerOCrear(carpetaEventos, "RemoteEvent", "UsarVendaje")
+local evVendajeActualizado = obtenerOCrear(carpetaEventos, "RemoteEvent", "VendajeActualizado")
 
 -- cooldowns[player] = timestamp del último ataque aceptado
 local cooldowns = {}
@@ -105,6 +108,7 @@ end
 -- ============================================================
 Players.PlayerAdded:Connect(function(player)
 	cooldowns[player] = 0
+	player:SetAttribute("Vendajes", 0)  -- inicializar vendajes al entrar
 
 	-- Cada vez que el personaje aparece: posicionar y dar arma
 	player.CharacterAdded:Connect(function(character)
@@ -123,8 +127,9 @@ Players.PlayerAdded:Connect(function(player)
 					hum.Health = hum.MaxHealth * 0.5
 				end
 			elseif not player:GetAttribute("EnLobby") then
-				-- Solo posicionar en el campamento si no viene del lobby
-				hrp.CFrame = SPAWN_CF
+				-- Posicionar en el campamento de la sesión correspondiente
+				local offsetX = player:GetAttribute("SesionOffsetX") or 0
+				hrp.CFrame = CFrame.new(5 + offsetX, 3, -14)
 			end
 		end
 
@@ -187,9 +192,14 @@ end)
 -- Volver al Lobby: redirige al SpawnLobby y resetea el estado
 -- ============================================================
 evReintentar.OnServerEvent:Connect(function(player)
+	-- Notificar al gestor de sesiones antes de resetear atributos
+	SesionManager.playerSale(player)
 	player:SetAttribute("EnLobby", true)
 	player:SetAttribute("ArmaEquipada", "Palo")
 	player:SetAttribute("KitComprado", nil)
+	-- Resetear vendajes al salir al lobby (se pierde el progreso de la partida)
+	player:SetAttribute("Vendajes", 0)
+	evVendajeActualizado:FireClient(player, 0)
 	local spawnLobby = workspace:FindFirstChild("SpawnLobby")
 	if spawnLobby then
 		player.RespawnLocation = spawnLobby
@@ -213,6 +223,31 @@ evRevivireAqui.OnServerEvent:Connect(function(player)
 		reviviendo[player] = cf
 	end
 
+	player:LoadCharacter()
+end)
+
+-- ============================================================
+-- Usar Vendaje desde la pantalla de muerte (revive en el lugar con 50% HP)
+-- ============================================================
+evUsarVendaje.OnServerEvent:Connect(function(player)
+	local actual = player:GetAttribute("Vendajes") or 0
+	if actual < 1 then
+		print(string.format("[Combate] %s intentó usar vendaje pero no tiene.", player.Name))
+		return
+	end
+
+	-- Consumir el vendaje
+	local nuevo = actual - 1
+	player:SetAttribute("Vendajes", nuevo)
+	evVendajeActualizado:FireClient(player, nuevo)
+
+	-- Revivir en el lugar de muerte (reutiliza la misma lógica que RevivireAqui)
+	local cf = posicionesMuerte[player]
+	if cf then
+		reviviendo[player] = cf
+	end
+
+	print(string.format("[Combate] %s usó un Vendaje. Le quedan %d.", player.Name, nuevo))
 	player:LoadCharacter()
 end)
 

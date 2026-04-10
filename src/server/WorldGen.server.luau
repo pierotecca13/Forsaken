@@ -1,3 +1,7 @@
+-- [SESIONES] Este script fue reemplazado por el sistema de sesiones por grupo.
+-- SesionManager.luau orquesta la creación de mundos por sesión.
+do return end
+
 -- WorldGen.server.luau
 -- Motor de generación procedural del mundo.
 -- Corre una vez al inicio del servidor y construye el Bosque (fase 1).

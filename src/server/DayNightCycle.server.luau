@@ -99,6 +99,20 @@ local tiempoUltimoSync = 0 -- acumulador para enviar sync cada ~1s
 Lighting.ClockTime = Config.HORA_INICIO_DIA
 aplicarIluminacion(0)
 
+-- Reiniciar el ciclo cuando la primera sesión de juego arranca,
+-- para que el timer siempre empiece en 0 al entrar al mapa.
+local bePrimeraSesion = carpetaEventos:WaitForChild("PrimeraSesionIniciada", 60)
+if bePrimeraSesion then
+	bePrimeraSesion.Event:Connect(function()
+		tiempoFase        = 0
+		tiempoUltimoSync  = 0
+		esNoche           = false
+		Lighting.ClockTime = Config.HORA_INICIO_DIA
+		aplicarIluminacion(0)
+		print("[DayNight] Ciclo reiniciado por primera sesion.")
+	end)
+end
+
 -- ============================================================
 -- Loop principal (Heartbeat = cada frame, igual que FixedUpdate)
 -- ============================================================

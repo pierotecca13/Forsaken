@@ -15,13 +15,17 @@ local playerGui = player:WaitForChild("PlayerGui")
 game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
 
 local carpetaEventos  = ReplicatedStorage:WaitForChild("Eventos")
-local evAtacarMelee   = carpetaEventos:WaitForChild("AtacarMelee")
-local evReintentar    = carpetaEventos:WaitForChild("Reintentar")
-local evRevivireAqui  = carpetaEventos:WaitForChild("RevivireAqui")
-local evGemas         = carpetaEventos:WaitForChild("GemasActualizadas")
+local evAtacarMelee        = carpetaEventos:WaitForChild("AtacarMelee")
+local evReintentar         = carpetaEventos:WaitForChild("Reintentar")
+local evRevivireAqui       = carpetaEventos:WaitForChild("RevivireAqui")
+local evGemas              = carpetaEventos:WaitForChild("GemasActualizadas")
+local evUsarVendaje        = carpetaEventos:WaitForChild("UsarVendaje")
+local evVendajeActualizado = carpetaEventos:WaitForChild("VendajeActualizado")
 
 -- Saldo de gemas local (se actualiza con cada evento GemasActualizadas)
 local gemasLocales = 0
+-- Cantidad de vendajes local (se actualiza con VendajeActualizado)
+local vendajesLocales = 0
 
 -- ============================================================
 -- UI: Barra de vida (esquina superior izquierda)
@@ -141,6 +145,24 @@ lblMuerte.TextColor3         = Color3.fromRGB(220, 45, 45)
 lblMuerte.TextXAlignment     = Enum.TextXAlignment.Center
 lblMuerte.Parent             = panel
 
+-- Botón Usar Vendaje (blanco, solo visible si tiene vendajes)
+local btnVendaje = Instance.new("TextButton")
+btnVendaje.Size             = UDim2.new(0, 300, 0, 50)
+btnVendaje.AnchorPoint      = Vector2.new(0.5, 0)
+btnVendaje.Position         = UDim2.new(0.5, 0, 0, 88)
+btnVendaje.BackgroundColor3 = Color3.fromRGB(230, 230, 230)
+btnVendaje.Text             = "Usar Vendaje 🩹  (te quedan 0)"
+btnVendaje.Font             = Enum.Font.GothamBold
+btnVendaje.TextScaled       = true
+btnVendaje.TextColor3       = Color3.fromRGB(30, 30, 30)
+btnVendaje.AutoButtonColor  = false
+btnVendaje.Visible          = false
+btnVendaje.Parent           = panel
+
+local cornerVendaje = Instance.new("UICorner")
+cornerVendaje.CornerRadius = UDim.new(0, 8)
+cornerVendaje.Parent       = btnVendaje
+
 -- Botón Revivir aquí (verde si tiene gemas, gris si no)
 local btnRevivir = Instance.new("TextButton")
 btnRevivir.Size             = UDim2.new(0, 300, 0, 52)
@@ -199,6 +221,22 @@ local function actualizarBarraVida(vida, maxVida)
 	end
 
 	lblNumVida.Text = tostring(math.ceil(vida))
+end
+
+-- Muestra/oculta el botón de vendaje y reposiciona los otros botones
+local function actualizarBotonVendaje()
+	if vendajesLocales > 0 then
+		btnVendaje.Visible  = true
+		btnVendaje.Text     = "Usar Vendaje 🩹  (te quedan " .. vendajesLocales .. ")"
+		panel.Size          = UDim2.new(0, 340, 0, 308)
+		btnRevivir.Position = UDim2.new(0.5, 0, 0, 152)
+		btnReintentar.Position = UDim2.new(0.5, 0, 0, 218)
+	else
+		btnVendaje.Visible  = false
+		panel.Size          = UDim2.new(0, 340, 0, 245)
+		btnRevivir.Position = UDim2.new(0.5, 0, 0, 90)
+		btnReintentar.Position = UDim2.new(0.5, 0, 0, 157)
+	end
 end
 
 -- Actualiza el aspecto del botón Revivir según el saldo de gemas actual
@@ -309,7 +347,8 @@ local function configurarCombate(character)
 
 	-- Mostrar pantalla de muerte al morir
 	humanoid.Died:Connect(function()
-		actualizarBotonRevivir()   -- estado del botón según gemas actuales
+		actualizarBotonRevivir()   -- estado según gemas actuales
+		actualizarBotonVendaje()   -- mostrar/ocultar botón de vendaje
 		overlay.Visible = true
 		panel.Visible   = true
 	end)
@@ -360,11 +399,29 @@ btnReintentar.MouseButton1Click:Connect(function()
 	evReintentar:FireServer()
 end)
 
--- Reactivar ambos botones cuando el nuevo personaje aparece
+-- Botón Usar Vendaje
+btnVendaje.MouseButton1Click:Connect(function()
+	if not btnVendaje.Active then return end
+	btnVendaje.Active = false
+	btnVendaje.Text   = "Reviviendo..."
+	evUsarVendaje:FireServer()
+end)
+
+-- Sincronizar cantidad de vendajes desde el servidor
+evVendajeActualizado.OnClientEvent:Connect(function(cantidad)
+	vendajesLocales = cantidad
+	-- Si la pantalla de muerte está visible, actualizar el botón en tiempo real
+	if panel.Visible then
+		actualizarBotonVendaje()
+	end
+end)
+
+-- Reactivar todos los botones cuando el nuevo personaje aparece
 player.CharacterAdded:Connect(function()
 	btnReintentar.Active = true
 	btnReintentar.Text   = "Volver al Lobby"
 	btnRevivir.Active    = true
+	btnVendaje.Active    = true
 	actualizarBotonRevivir()
 end)
 

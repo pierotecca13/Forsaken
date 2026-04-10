@@ -7,31 +7,34 @@ return {
 	-- Definición de cada tipo de cofre
 	TIPOS = {
 		Madera = {
-			nombre     = "Cofre de Madera",
-			gemasMin   = 1,
-			gemasMax   = 2,
-			maxPartida = 5,      -- máximo que pueden aparecer en una partida
-			intervalo  = 5,    -- segundos entre spawns (6 min)
-			color      = Color3.fromRGB(139, 90, 43),
-			material   = Enum.Material.Wood,
+			nombre        = "Cofre de Madera",
+			gemasMin      = 1,
+			gemasMax      = 2,
+			maxPartida    = 5,
+			intervalo     = 5,
+			color         = Color3.fromRGB(139, 90, 43),
+			material      = Enum.Material.Wood,
+			chanceVendaje = 0,     -- cofre de madera nunca da vendajes
 		},
 		Piedra = {
-			nombre     = "Cofre de Piedra",
-			gemasMin   = 3,
-			gemasMax   = 5,
-			maxPartida = 3,
-			intervalo  = 5,    -- 8 min
-			color      = Color3.fromRGB(150, 150, 150),
-			material   = Enum.Material.Slate,
+			nombre        = "Cofre de Piedra",
+			gemasMin      = 3,
+			gemasMax      = 5,
+			maxPartida    = 3,
+			intervalo     = 5,
+			color         = Color3.fromRGB(150, 150, 150),
+			material      = Enum.Material.Slate,
+			chanceVendaje = 0.20,  -- 20%: da 1 vendaje en lugar de gemas
 		},
 		Dorado = {
-			nombre     = "Cofre Dorado",
-			gemasMin   = 6,
-			gemasMax   = 10,
-			maxPartida = 2,
-			intervalo  = 5,    -- 10 min
-			color      = Color3.fromRGB(255, 200, 0),
-			material   = Enum.Material.SmoothPlastic,
+			nombre        = "Cofre Dorado",
+			gemasMin      = 6,
+			gemasMax      = 10,
+			maxPartida    = 2,
+			intervalo     = 5,
+			color         = Color3.fromRGB(255, 200, 0),
+			material      = Enum.Material.SmoothPlastic,
+			chanceVendaje = 0.40,  -- 40%: da 1 vendaje en lugar de gemas
 		},
 	},
 

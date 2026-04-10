@@ -23,7 +23,7 @@ return {
 			radioRepulsion   = 10,      -- corrompidos evitan este radio
 		},
 		Hoguera = {
-			nombre           = "Hoguera Portátil",
+			nombre           = "Hoguera",
 			costo            = { Madera = 8 },
 			maxInventario    = 1,
 			duracion         = 360,   -- segundos (= 3 noches)

@@ -40,19 +40,20 @@ local evColocarItem           = obtenerOCrear(carpetaEventos, "RemoteEvent", "Co
 local carpetaHogueras = obtenerOCrear(workspace, "Folder", "HoguerasActivas")
 
 -- ============================================================
--- Estado global
+-- Estado por sesión (clave = sesionId)
 -- ============================================================
-local mesaConstruida = false
+local mesasConstruidas = {}   -- { [sesionId] = true }
 
 -- ============================================================
 -- Construir el modelo visual de la Mesa en el mundo
 -- ============================================================
-local function crearModeloMesa()
-	local pos = MesaConfig.POSICION_MESA
+local function crearModeloMesa(offsetX, carpetaSesion)
+	local basePosConfig = MesaConfig.POSICION_MESA
+	local pos = Vector3.new(offsetX + basePosConfig.X, basePosConfig.Y, basePosConfig.Z)
 
 	local carpeta = Instance.new("Folder")
 	carpeta.Name   = "MesaTrabajo"
-	carpeta.Parent = workspace
+	carpeta.Parent = carpetaSesion or workspace
 
 	-- Tablero superior (superficie de trabajo)
 	local tablero = Instance.new("Part")
@@ -101,9 +102,10 @@ local function crearModeloMesa()
 	-- Conectar prompt al evento de apertura de menú
 	prompt.Triggered:Connect(function(player)
 		evAbrirMesa:FireClient(player, {
-			inventario = InventarioMgr.obtener(player),
-			arma       = player:GetAttribute("ArmaEquipada") or "Palo",
-			armadura   = player:GetAttribute("ArmaduraEquipada") or "SinArmadura",
+			inventario         = InventarioMgr.obtener(player),
+			arma               = player:GetAttribute("ArmaEquipada") or "Palo",
+			armadura           = player:GetAttribute("ArmaduraEquipada") or "SinArmadura",
+			cofreAlmConstruido = player:GetAttribute("CofreAlmConstruido") or false,
 		})
 	end)
 
@@ -259,8 +261,11 @@ end
 -- HANDLER: Solicitar construcción de la Mesa
 -- ============================================================
 evSolicitarMesa.OnServerEvent:Connect(function(player)
-	-- Evitar duplicados
-	if mesaConstruida then
+	local sesionId = player:GetAttribute("SesionActual")
+	local offsetX  = player:GetAttribute("SesionOffsetX") or 0
+
+	-- Evitar duplicados por sesión
+	if mesasConstruidas[sesionId] then
 		evResultadoConstruccion:FireClient(player, {
 			exito   = false,
 			mensaje = "La mesa ya está construida.",
@@ -282,16 +287,24 @@ evSolicitarMesa.OnServerEvent:Connect(function(player)
 		return
 	end
 
+	-- Encontrar carpeta de la sesión para parental
+	local carpetaSesion = nil
+	if sesionId then
+		local sesFolder = workspace:FindFirstChild("Sesiones")
+		carpetaSesion = sesFolder and sesFolder:FindFirstChild("Sesion_" .. sesionId)
+	end
+
 	-- Construir mesa en el mundo
-	mesaConstruida = true
-	crearModeloMesa()
+	mesasConstruidas[sesionId] = true
+	crearModeloMesa(offsetX, carpetaSesion)
 
 	evResultadoConstruccion:FireClient(player, {
 		exito   = true,
 		mensaje = "Mesa de Trabajo construida!",
 	})
 
-	print(string.format("[Mesa] %s construyó la Mesa de Trabajo.", player.Name))
+	print(string.format("[Mesa] %s construyó la Mesa de Trabajo (sesión %s, offsetX=%d).",
+		player.Name, tostring(sesionId), offsetX))
 end)
 
 -- ============================================================

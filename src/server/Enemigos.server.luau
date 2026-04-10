@@ -1,3 +1,7 @@
+-- [SESIONES] Este script fue reemplazado por el sistema de sesiones por grupo.
+-- SesionManager.luau orquesta la creación de mundos por sesión.
+do return end
+
 -- Enemigos.server.luau
 -- Sistema de enemigos del Bosque (día/noche).
 -- Día:   Conejo, Zorro, Lobo, Oso  (normales)

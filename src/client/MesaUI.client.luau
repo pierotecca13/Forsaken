@@ -23,6 +23,12 @@ local evResultCrafteo = carpetaEventos:WaitForChild("ResultadoCrafteo")
 local evColocarItem   = carpetaEventos:WaitForChild("ColocarItem")
 local evInventario    = carpetaEventos:WaitForChild("InventarioActualizado")
 
+-- Evento del cofre de almacenamiento (creado por SesionCofreAlm al inicializar)
+local evCraftearCofreAlm
+task.spawn(function()
+	evCraftearCofreAlm = carpetaEventos:WaitForChild("CraftearCofreAlm")
+end)
+
 -- Eventos de equipo (creados por Equipo.server al arrancar)
 local evCrafteoArma, evResultArma, evCrafteoArmadura, evResultArmadura, evEquipoActualizado
 task.spawn(function()
@@ -61,15 +67,17 @@ end)
 -- ============================================================
 -- Estado local
 -- ============================================================
-local menuAbierto      = false
-local invLocal         = {}
-local armaEquipada     = "Palo"
-local armaduraEquipada = "SinArmadura"
+local menuAbierto        = false
+local invLocal           = {}
+local armaEquipada       = "Palo"
+local armaduraEquipada   = "SinArmadura"
+local cofreAlmConstruido = false
 
 -- Tablas de referencias a bloques de la UI
 local bloques         = {}   -- consumibles: bloques[tipo] = { btn, lblInv }
 local bloquesArma     = {}   -- armas:       bloquesArma[tipo] = { btn, lblEstado, bloque }
 local bloquesArmadura = {}   -- armaduras:   bloquesArmadura[tipo] = { btn, lblEstado, bloque }
+local bloqueCofreAlm  = nil  -- { btn } para el cofre de almacenamiento
 
 -- ============================================================
 -- UI: Marco principal con scroll
@@ -117,7 +125,7 @@ scrollBody.BorderSizePixel        = 0
 scrollBody.ScrollBarThickness     = 5
 scrollBody.ScrollBarImageColor3   = Color3.fromRGB(140, 95, 40)
 scrollBody.AutomaticCanvasSize    = Enum.AutomaticSize.None
-scrollBody.CanvasSize             = UDim2.new(0, 0, 0, 1300)
+scrollBody.CanvasSize             = UDim2.new(0, 0, 0, 1560)
 scrollBody.ScrollingDirection     = Enum.ScrollingDirection.Y
 scrollBody.Parent                 = marco
 
@@ -520,6 +528,50 @@ for idx, tipo in ipairs(armadurasOrden) do
 	end)
 end
 
+-- ============================================================
+-- SECCIÓN 4: Almacenamiento (Cofre de Almacenamiento)
+-- ============================================================
+crearSeparador(70)
+crearTituloSeccion("ALMACENAMIENTO", 71, Color3.fromRGB(180, 140, 60))
+
+do
+	local bloque = crearBloque(72, Color3.fromRGB(24, 18, 8))
+
+	local filaTop = crearFilaTop(bloque)
+	local lblNom = Instance.new("TextLabel")
+	lblNom.Size               = UDim2.new(1, 0, 1, 0)
+	lblNom.BackgroundTransparency = 1
+	lblNom.Text               = "Cofre de Almacenamiento"
+	lblNom.Font               = Enum.Font.GothamBold
+	lblNom.TextScaled         = true
+	lblNom.TextColor3         = Color3.fromRGB(220, 180, 80)
+	lblNom.TextXAlignment     = Enum.TextXAlignment.Left
+	lblNom.Parent             = filaTop
+
+	crearLblCosto(bloque, { Madera = 20, Piedra = 10, Piel = 5 })
+
+	local lblDesc = Instance.new("TextLabel")
+	lblDesc.Size               = UDim2.new(1, 0, 0, 13)
+	lblDesc.BackgroundTransparency = 1
+	lblDesc.Text               = "5 slots (escala con nivel del campamento) · una vez por sesión"
+	lblDesc.Font               = Enum.Font.Gotham
+	lblDesc.TextScaled         = true
+	lblDesc.TextColor3         = Color3.fromRGB(140, 130, 100)
+	lblDesc.TextXAlignment     = Enum.TextXAlignment.Left
+	lblDesc.LayoutOrder        = 3
+	lblDesc.Parent             = bloque
+
+	local btnCofre = crearBoton(bloque, "CRAFTEAR COFRE", Color3.fromRGB(80, 55, 20))
+	btnCofre.LayoutOrder = 4
+	bloqueCofreAlm = { btn = btnCofre }
+
+	btnCofre.MouseButton1Click:Connect(function()
+		if not btnCofre.Active then return end
+		btnCofre.Active = false
+		if evCraftearCofreAlm then evCraftearCofreAlm:FireServer() end
+	end)
+end
+
 -- ── Feedback flotante ────────────────────────────────────────────
 local lblFeedback = Instance.new("TextLabel")
 lblFeedback.AnchorPoint        = Vector2.new(0.5, 0)
@@ -537,6 +589,29 @@ lblFeedback.Parent             = screenGui
 -- Lógica de actualización de botones
 -- ============================================================
 function actualizarBotones()
+	-- ── Cofre de almacenamiento ───────────────────────────────────
+	if bloqueCofreAlm then
+		local btn = bloqueCofreAlm.btn
+		if cofreAlmConstruido then
+			btn.Active           = false
+			btn.BackgroundColor3 = Color3.fromRGB(30, 65, 25)
+			btn.Text             = "CONSTRUIDO  ✓"
+		else
+			local costo = { Madera = 20, Piedra = 10, Piel = 5 }
+			local puedePagar = true
+			for recurso, cantidad in pairs(costo) do
+				if (invLocal[recurso] or 0) < cantidad then
+					puedePagar = false; break
+				end
+			end
+			btn.Active           = puedePagar
+			btn.BackgroundColor3 = puedePagar
+				and Color3.fromRGB(80, 55, 20)
+				or  Color3.fromRGB(50, 50, 50)
+			btn.Text = "CRAFTEAR COFRE"
+		end
+	end
+
 	-- ── Consumibles ──────────────────────────────────────────────
 	for tipo, ref in pairs(bloques) do
 		local receta   = MesaConfig.RECETAS[tipo]
@@ -664,8 +739,11 @@ end
 -- ============================================================
 local function abrirMenu(datos)
 	invLocal      = datos.inventario or invLocal
-	if datos.arma     then armaEquipada     = datos.arma     end
-	if datos.armadura then armaduraEquipada = datos.armadura end
+	if datos.arma              then armaEquipada       = datos.arma              end
+	if datos.armadura          then armaduraEquipada   = datos.armadura          end
+	if datos.cofreAlmConstruido ~= nil then
+		cofreAlmConstruido = datos.cofreAlmConstruido
+	end
 	menuAbierto   = true
 	scrollBody.CanvasPosition = Vector2.new(0, 0)   -- siempre arriba al abrir
 	marco.Visible             = true
@@ -689,8 +767,18 @@ evInventario.OnClientEvent:Connect(function(inv)
 	if menuAbierto then actualizarBotones() end
 end)
 
--- Resultado de crafteo de consumibles
+-- Resultado de crafteo (consumibles + cofre de almacenamiento)
 evResultCrafteo.OnClientEvent:Connect(function(resultado)
+	if resultado.tipo == "CofreAlm" then
+		if resultado.exito then
+			cofreAlmConstruido = true
+		else
+			if bloqueCofreAlm then bloqueCofreAlm.btn.Active = true end
+		end
+		actualizarBotones()
+		mostrarFeedback(resultado.mensaje or (resultado.exito and "Cofre construido!" or "Error"), resultado.exito)
+		return
+	end
 	for _, ref in pairs(bloques) do ref.btn.Active = true end
 	actualizarBotones()
 	mostrarFeedback(resultado.mensaje or (resultado.exito and "Crafteado!" or "Error"), resultado.exito)

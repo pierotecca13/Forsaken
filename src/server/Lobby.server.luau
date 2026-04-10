@@ -10,6 +10,7 @@ local Lighting          = game:GetService("Lighting")
 local GemasManager     = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("GemasManager"))
 local InventarioManager= require(game:GetService("ServerScriptService"):WaitForChild("Server"):WaitForChild("InventarioManager"))
 local LobbyConfig      = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("LobbyConfig"))
+local SesionManager    = require(game:GetService("ServerScriptService"):WaitForChild("Server"):WaitForChild("SesionManager"))
 
 -- ============================================================
 -- Helper: obtener o crear instancia
@@ -434,13 +435,12 @@ lanzarGrupo = function(cuadroIdx)
 	end
 	actualizarCuadros()
 
-	-- Enviar cada jugador al juego
+	-- Preparar cada jugador (flags y arma inicial) — LoadCharacter lo llama SesionManager
 	for _, player in ipairs(grupo) do
 		enLobby[player]        = false
 		transicionando[player] = true
 		player:SetAttribute("EnLobby", false)
 
-		-- Si el kit incluye un arma inicial, actualizar el atributo antes de spawnar
 		local kitId = player:GetAttribute("KitComprado")
 		if kitId then
 			local kitCfg = LobbyConfig.KITS[kitId]
@@ -449,13 +449,15 @@ lanzarGrupo = function(cuadroIdx)
 			end
 		end
 
-		-- Redirigir spawn al juego
 		if spawnJuego then
 			player.RespawnLocation = spawnJuego
 		end
-
-		player:LoadCharacter()
 	end
+
+	-- Crear sesión en coroutine separado (genera el mundo, llama LoadCharacter)
+	task.spawn(function()
+		SesionManager.nuevaSesion(grupo)
+	end)
 
 	cuadro.iniciando = false
 	print(string.format("[Lobby] Cuadro %d lanzado al juego con %d jugadores.", cuadroIdx, #grupo))
@@ -574,7 +576,9 @@ evLobbyIniciarPartida.OnServerEvent:Connect(function(player)
 			end
 		end
 		if spawnJuego then player.RespawnLocation = spawnJuego end
-		player:LoadCharacter()
+		task.spawn(function()
+			SesionManager.nuevaSesion({ player })
+		end)
 		return
 	end
 	lanzarGrupo(idx)
