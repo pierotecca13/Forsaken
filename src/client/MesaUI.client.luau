@@ -29,6 +29,13 @@ task.spawn(function()
 	evCraftearCofreAlm = carpetaEventos:WaitForChild("CraftearCofreAlm")
 end)
 
+-- Tablas de referencias a bloques de la UI (deben declararse antes del task.spawn
+-- que las usa, ya que las closures capturan upvalues en el momento de su creación)
+local bloques         = {}   -- consumibles: bloques[tipo] = { btn, lblInv }
+local bloquesArma     = {}   -- armas:       bloquesArma[tipo] = { btn, lblEstado, bloque }
+local bloquesArmadura = {}   -- armaduras:   bloquesArmadura[tipo] = { btn, lblEstado, bloque }
+local bloqueCofreAlm  = nil  -- { btn } para el cofre de almacenamiento
+
 -- Eventos de equipo (creados por Equipo.server al arrancar)
 local evCrafteoArma, evResultArma, evCrafteoArmadura, evResultArmadura, evEquipoActualizado
 task.spawn(function()
@@ -73,11 +80,6 @@ local armaEquipada       = "Palo"
 local armaduraEquipada   = "SinArmadura"
 local cofreAlmConstruido = false
 
--- Tablas de referencias a bloques de la UI
-local bloques         = {}   -- consumibles: bloques[tipo] = { btn, lblInv }
-local bloquesArma     = {}   -- armas:       bloquesArma[tipo] = { btn, lblEstado, bloque }
-local bloquesArmadura = {}   -- armaduras:   bloquesArmadura[tipo] = { btn, lblEstado, bloque }
-local bloqueCofreAlm  = nil  -- { btn } para el cofre de almacenamiento
 
 -- ============================================================
 -- UI: Marco principal con scroll

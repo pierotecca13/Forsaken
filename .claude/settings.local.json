@@ -6,7 +6,8 @@
       "Bash(wc -l /c/Dev/Proyectos/Rb/src/client/*.luau /c/Dev/Proyectos/Rb/src/server/*.luau /c/Dev/Proyectos/Rb/src/shared/*.luau)",
       "Bash(xargs grep:*)",
       "Bash(find /c/Dev/Proyectos/Rb/src -type f -iname *torch* -o -iname *hoguera* -o -iname *bonfire* -o -iname *campfire*)",
-      "Bash(grep -l \"RemoteEvent\\\\|RemoteFunction\" /c/Dev/Proyectos/Rb/src/server/*.luau)"
+      "Bash(grep -l \"RemoteEvent\\\\|RemoteFunction\" /c/Dev/Proyectos/Rb/src/server/*.luau)",
+      "Bash(python3:*)"
     ]
   }
 }

@@ -5,6 +5,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage     = game:GetService("ServerStorage")
+local Lighting          = game:GetService("Lighting")
 
 local Config            = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RecursosConfig"))
 local InventarioManager = require(script.Parent:WaitForChild("InventarioManager"))
@@ -140,6 +141,14 @@ local function crearRocaModelo(dados, info, carpetaRecursos)
 	end)
 end
 
+local COLOR_HONGO_DIA   = Color3.fromRGB(80, 220, 80)
+local COLOR_HONGO_NOCHE = Color3.fromRGB(180, 100, 210)
+
+local function esNoche()
+	local h = Lighting.ClockTime
+	return h >= 19 or h < 7
+end
+
 local function crearHongoModelo(dados, info, carpetaRecursos)
 	local modelo = plantillaHongo:Clone()
 	modelo.Name  = "Hongo"
@@ -188,9 +197,18 @@ local function crearHongoModelo(dados, info, carpetaRecursos)
 
 	local luz = Instance.new("PointLight")
 	luz.Brightness = 2
-	luz.Color      = Color3.fromRGB(180, 100, 210)
+	luz.Color      = esNoche() and COLOR_HONGO_NOCHE or COLOR_HONGO_DIA
 	luz.Range      = 14
 	luz.Parent     = ancla
+
+	local conexionHora = Lighting:GetPropertyChangedSignal("ClockTime"):Connect(function()
+		if luz.Parent then
+			luz.Color = esNoche() and COLOR_HONGO_NOCHE or COLOR_HONGO_DIA
+		end
+	end)
+	ancla.Destroying:Connect(function()
+		conexionHora:Disconnect()
+	end)
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText            = "Recolectar"
@@ -205,19 +223,35 @@ local function crearHongoModelo(dados, info, carpetaRecursos)
 		prompt.Enabled = false
 		luz.Enabled    = false
 		for _, p in ipairs(partes) do p.Transparency = 0.85; p.CanCollide = false end
-		local cantidad = math.random(info.cantidadMin, info.cantidadMax)
-		local ok = InventarioManager.agregar(player, info.recurso, cantidad)
-		if not ok then
-			for _, p in ipairs(partes) do p.Transparency = 0; p.CanCollide = true end
-			luz.Enabled    = true
-			prompt.Enabled = true
-			return
+
+		if not esNoche() then
+			-- Día: daño al jugador, no da recursos
+			local char      = player.Character
+			local humanoid  = char and char:FindFirstChildWhichIsA("Humanoid")
+			if humanoid then
+				humanoid:TakeDamage(10)
+			end
+			task.delay(info.respawnTiempo, function()
+				for _, p in ipairs(partes) do p.Transparency = 0; p.CanCollide = true end
+				luz.Enabled    = true
+				prompt.Enabled = true
+			end)
+		else
+			-- Noche: comportamiento original (agregar al inventario)
+			local cantidad = math.random(info.cantidadMin, info.cantidadMax)
+			local ok = InventarioManager.agregar(player, info.recurso, cantidad)
+			if not ok then
+				for _, p in ipairs(partes) do p.Transparency = 0; p.CanCollide = true end
+				luz.Enabled    = true
+				prompt.Enabled = true
+				return
+			end
+			task.delay(info.respawnTiempo, function()
+				for _, p in ipairs(partes) do p.Transparency = 0; p.CanCollide = true end
+				luz.Enabled    = true
+				prompt.Enabled = true
+			end)
 		end
-		task.delay(info.respawnTiempo, function()
-			for _, p in ipairs(partes) do p.Transparency = 0; p.CanCollide = true end
-			luz.Enabled    = true
-			prompt.Enabled = true
-		end)
 	end)
 end
 

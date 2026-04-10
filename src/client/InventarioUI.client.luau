@@ -351,7 +351,7 @@ for i, nombreRecurso in ipairs(Config.ORDEN_INVENTARIO) do
 	local lblNombre = Instance.new("TextLabel")
 	lblNombre.Size               = UDim2.new(0.75, 0, 1, 0)
 	lblNombre.BackgroundTransparency = 1
-	lblNombre.Text               = Config.ICONOS[nombreRecurso] .. " " .. nombreRecurso
+	lblNombre.Text               = nombreRecurso
 	lblNombre.TextScaled         = true
 	lblNombre.Font               = Enum.Font.Gotham
 	lblNombre.TextColor3         = COLORES_RECURSO[nombreRecurso] or Color3.fromRGB(220, 220, 220)
@@ -541,7 +541,7 @@ abrirPopupDescarte = function(recurso, cantidad)
 	recursoActivo  = recurso
 	cantidadActiva = cantidad
 	local icono = Config.ICONOS[recurso] or ""
-	popupTitulo.Text   = icono .. " " .. recurso .. "  ×" .. cantidad
+	popupTitulo.Text   = recurso .. "  ×" .. cantidad
 	-- Mostrar botones de cantidad, ocultar botón colocar
 	btnUno.Visible    = true
 	btnDiez.Visible   = true
@@ -554,7 +554,7 @@ abrirPopupHerramienta = function(recurso)
 	recursoActivo  = recurso
 	cantidadActiva = 1
 	local icono = Config.ICONOS[recurso] or ""
-	popupTitulo.Text = icono .. " " .. recurso
+	popupTitulo.Text = recurso
 	-- Mostrar solo el botón colocar, ocultar botones de cantidad
 	btnUno.Visible    = false
 	btnDiez.Visible   = false

@@ -95,7 +95,7 @@ function M.iniciar(sesionId, carpetaSesion, sesionRef)
 	-- ── Modelo visual ────────────────────────────────────────
 	local function crearModelo(info, posicion, corrompido)
 		local modelo = Instance.new("Model")
-		modelo.Name  = info.nombre .. "_NPC"
+		modelo.Name  = info.nombre
 
 		local hrp = Instance.new("Part")
 		hrp.Name       = "HumanoidRootPart"
@@ -142,45 +142,15 @@ function M.iniciar(sesionId, carpetaSesion, sesionRef)
 		humanoid.MaxHealth             = info.vida
 		humanoid.Health                = info.vida
 		humanoid.WalkSpeed             = info.velocidad
+		-- Sin nombre flotante; barra nativa solo aparece al recibir daño
 		humanoid.NameDisplayDistance   = 0
-		humanoid.HealthDisplayDistance = 0
+		humanoid.HealthDisplayDistance = 20
+		humanoid.HealthDisplayType     = Enum.HumanoidHealthDisplayType.DisplayWhenDamaged
 		humanoid.Parent                = modelo
-
-		local bb = Instance.new("BillboardGui")
-		bb.Size        = UDim2.new(0, 120, 0, 36)
-		bb.StudsOffset = Vector3.new(0, info.tamCuerpo.Y + 1.5, 0)
-		bb.Parent      = hrp
-
-		local lblN = Instance.new("TextLabel")
-		lblN.Size                   = UDim2.new(1, 0, 0.5, 0)
-		lblN.Text                   = info.nombre
-		lblN.Font                   = Enum.Font.GothamBold
-		lblN.TextScaled             = true
-		lblN.TextColor3             = corrompido and Color3.fromRGB(255, 80, 80) or Color3.fromRGB(220, 220, 220)
-		lblN.BackgroundTransparency = 1
-		lblN.Parent                 = bb
-
-		local fondoBV = Instance.new("Frame")
-		fondoBV.Size              = UDim2.new(1, 0, 0.38, 0)
-		fondoBV.Position          = UDim2.new(0, 0, 0.62, 0)
-		fondoBV.BackgroundColor3  = Color3.fromRGB(40, 10, 10)
-		fondoBV.BorderSizePixel   = 0
-		fondoBV.Parent            = bb
-
-		local barraBV = Instance.new("Frame")
-		barraBV.Name            = "BarraVida"
-		barraBV.Size            = UDim2.new(1, 0, 1, 0)
-		barraBV.BackgroundColor3 = corrompido and Color3.fromRGB(180, 0, 180) or Color3.fromRGB(200, 35, 35)
-		barraBV.BorderSizePixel = 0
-		barraBV.Parent          = fondoBV
-
-		humanoid.HealthChanged:Connect(function(v)
-			barraBV.Size = UDim2.new(math.max(v / info.vida, 0), 0, 1, 0)
-		end)
 
 		modelo.PrimaryPart = hrp
 		modelo.Parent      = workspace
-		return modelo, humanoid, hrp, cabeza, bb
+		return modelo, humanoid, hrp, cabeza
 	end
 
 	-- ── Pathfinding ──────────────────────────────────────────
@@ -206,7 +176,7 @@ function M.iniciar(sesionId, carpetaSesion, sesionRef)
 	local function gestionarEnemigo(tipoBase, posBase, corrompido, refCancelar)
 		local info  = fusionarInfo(tipoBase, corrompido)
 		local spawn = posBase + Vector3.new(0, info.tamCuerpo.Y, 0)
-		local modelo, humanoid, hrp, cabeza, bb = crearModelo(info, spawn, corrompido)
+		local modelo, humanoid, hrp, cabeza = crearModelo(info, spawn, corrompido)
 
 		refCancelar.modelo = modelo
 
@@ -233,7 +203,7 @@ function M.iniciar(sesionId, carpetaSesion, sesionRef)
 
 		humanoid.Died:Connect(function()
 			estado = "muerto"
-			if bb then bb.Enabled = false end
+			humanoid.HealthDisplayDistance = 0  -- ocultar barra al morir
 			if loboRef then
 				for i, r in ipairs(lobosCorruptosActivos) do
 					if r == loboRef then table.remove(lobosCorruptosActivos, i); break end
